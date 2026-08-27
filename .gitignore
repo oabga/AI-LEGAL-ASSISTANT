@@ -1,3 +1,37 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Runtime data
+backend/chroma_db/
+backend/outputs/
+backend/uploads/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Tooling
 repomix-output.xml
 .repomixignore
-.venv
+.DS_Store
+
+# LaTeX build artifacts
+Baocao/*.aux
+Baocao/*.fdb_latexmk
+Baocao/*.fls
+Baocao/*.log
+Baocao/*.out
+Baocao/*.toc
+Baocao/*.synctex.gz

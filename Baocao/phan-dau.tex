@@ -1,0 +1,145 @@
+% ============================================================
+% LỜI CẢM ƠN
+% ============================================================
+\chapter*{LỜI CẢM ƠN}
+
+Em xin cảm ơn ThS.~Dương Hữu Thành đã nhận hướng dẫn đồ án này. Những góp ý của
+thầy về cách tách phần truy hồi khỏi tầng HTTP, và về việc không để hệ thống ``chết
+cả cụm'' chỉ vì thiếu khóa API, đã đổi hướng hiện thực khá nhiều so với bản phác
+đầu tiên của em.
+
+Em cũng cảm ơn các thầy cô Khoa Công nghệ Thông tin, Trường Đại học Mở Thành phố
+Hồ Chí Minh. Phần lớn kiến thức em dùng khi viết lược đồ CSDL, thiết kế use case
+và đóng gói Docker đều xuất phát từ các học phần đã học, chứ không phải tự nghĩ
+ra trong vài tuần làm đồ án.
+
+Trong quá trình làm, em còn dựa vào kho văn bản pháp luật đã công bố và vào
+pipeline truy hồi từng dùng cho một cuộc thi hỏi đáp pháp lý tiếng Việt. Đồ án
+không nộp lại bài thi đó; em chỉ lấy phần lõi truy hồi rồi viết thành ứng dụng
+có đăng nhập, lịch sử hội thoại và vài nghiệp vụ dành cho doanh nghiệp nhỏ.
+
+Mọi chỗ còn vụng, còn thiếu số liệu hay còn nói chưa chặt, là trách nhiệm của em.
+
+\clearpage
+
+\chapter*{NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN}
+
+\begin{flushright}
+\textit{TP. Hồ Chí Minh, ngày \ldots\ tháng \ldots\ năm \namBaoCao}\\[2.5cm]
+Giảng viên hướng dẫn\\[2.5cm]
+\gvhd
+\end{flushright}
+
+\clearpage
+
+\chapter*{TÓM TẮT ĐỒ ÁN NGÀNH}
+
+Đồ án này làm một việc khá cụ thể: viết một trang web để người làm trong doanh
+nghiệp nhỏ --- chủ cửa hàng, kế toán, nhân sự --- hỏi được câu hỏi pháp lý bằng
+tiếng Việt thường ngày, và nhận câu trả lời kèm đúng Điều luật để tự mở ra đối
+chiếu. Đồ án không nhằm thay thế luật sư. Mục tiêu hẹp hơn: giảm việc đoán mò,
+và giảm việc copy câu trả lời từ chatbot không nêu nguồn.
+
+Phần hỏi đáp dùng kiểu truy hồi-rồi-sinh (RAG). Corpus gồm \soLuat{} văn bản,
+\soDieu{} Điều, lấy từ các luật, nghị định, thông tư gắn với thuế, lao động, bảo
+hiểm, kế toán, hợp đồng và hỗ trợ DNNVV. Mỗi Điều là một đơn vị lưu trữ. Khi có
+câu hỏi, hệ thống tìm song song theo nghĩa (vector) và theo từ (BM25), gộp bảng
+xếp hạng bằng RRF, lọc bớt Điều nhiễu bằng mô hình, rồi mới gọi LLM. Bước cuối
+đối chiếu các số Điều xuất hiện trong câu trả lời với tập vừa truy hồi; số nào
+không có trong tập đó thì bị gỡ khỏi danh sách căn cứ hiện cho người dùng.
+
+Ngoài hỏi đáp, đồ án còn ba mảng. Tra cứu văn bản cho phép đi theo cây Chương
+rồi tới Điều, tìm cả câu không dấu mà đoạn trích vẫn còn dấu. Soát xét hợp đồng
+nhận file PDF hoặc DOCX, cắt theo điều khoản rồi chấm mức rủi ro. Lịch tuân thủ
+sinh các mốc khai thuế GTGT, quyết toán TNDN, đóng BHXH, báo cáo lao động và nộp
+BCTC theo hồ sơ doanh nghiệp đã khai, mỗi mốc kèm \texttt{legal\_refs}.
+
+Hệ thống viết bằng React (phía trình duyệt) và FastAPI (phía máy chủ), dữ liệu
+nằm trên PostgreSQL, vector nằm trên Chroma, đóng gói bằng Docker Compose. Bộ
+kiểm thử tự động hiện có \soTest{} test. Khi chưa gắn khóa dịch vụ mô hình, đăng
+nhập và tra cứu văn bản vẫn chạy; chỉ đường hỏi đáp báo chưa sẵn sàng. Lựa chọn
+này xuất phát từ thực tế lúc em cài: thiếu khóa thì không nên kéo theo cả trang
+web sập.
+
+Báo cáo gồm năm chương: giới thiệu, cơ sở lý thuyết, phân tích--thiết kế--hiện
+thực, thử nghiệm--đánh giá, kết luận và hướng phát triển.
+
+\clearpage
+
+\chapter*{ABSTRACT}
+
+This project is a web application that lets people in small Vietnamese firms
+ask everyday legal questions and get answers that point back to real articles
+in the statute book. It is not a substitute for a lawyer. The narrower aim is
+to stop people from guessing, and to stop them from copying unsourced chatbot
+text into a tax filing or a labour contract.
+
+Question answering follows a retrieve-then-generate pattern. The corpus holds
+\soLuat{} legal texts and \soDieu{} articles covering tax, labour, social
+insurance, accounting, contracts and SME support. Retrieval runs BM25 and a
+vector index in parallel, fuses the two ranked lists, drops weak context, then
+calls a language model. Article numbers that the model invents but that were
+never retrieved are stripped from the citation list shown to the user.
+
+The same codebase also offers a chapter-to-article browser with
+diacritic-tolerant search, a contract reviewer that scores clauses from a PDF
+or DOCX upload, and a compliance calendar generated from the company's size
+and VAT filing period.
+
+The stack is React and FastAPI on PostgreSQL and Chroma. It is shipped with
+Docker Compose and covered by \soTest{} automated tests. If the model API key
+is missing, login and the law browser still work; only the chat path returns a
+clear error. That behaviour was a deliberate choice after the first
+deployments failed as a whole unit whenever embeddings could not be built.
+
+\clearpage
+
+\tableofcontents
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{chapter}{DANH MỤC TỪ VIẾT TẮT}
+\chapter*{DANH MỤC TỪ VIẾT TẮT}
+
+\begin{longtable}{p{2.6cm}p{5.8cm}p{5.8cm}}
+\toprule
+\textbf{Viết tắt} & \textbf{Đầy đủ} & \textbf{Dùng trong đồ án để chỉ} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Viết tắt} & \textbf{Đầy đủ} & \textbf{Dùng trong đồ án để chỉ} \\
+\midrule
+\endhead
+API & Application Programming Interface & Cổng gọi chức năng của máy chủ \\
+BHXH & Bảo hiểm xã hội & Nghĩa vụ đóng bảo hiểm của doanh nghiệp \\
+BM25 & Best Matching 25 & Cách chấm điểm khớp từ khi tìm Điều luật \\
+BCTC & Báo cáo tài chính & Báo cáo năm doanh nghiệp phải nộp \\
+CSDL & Cơ sở dữ liệu & PostgreSQL trong đồ án \\
+DNNVV & Doanh nghiệp nhỏ và vừa & Nhóm người dùng em nhắm tới \\
+FTS & Full-text search & Tìm chữ trong corpus, khác với tìm theo nghĩa \\
+GTGT & Giá trị gia tăng & Thuế khai theo tháng hoặc theo quý \\
+HyDE & Hypothetical Document Embeddings & Sinh một đoạn trả lời giả để đi tìm vector \\
+JWT & JSON Web Token & Token đăng nhập, gồm access và refresh \\
+LLM & Large Language Model & Mô hình sinh câu trả lời \\
+ORM & Object-Relational Mapping & SQLAlchemy ánh xạ bảng thành đối tượng \\
+RAG & Retrieval-Augmented Generation & Sinh câu trả lời sau khi đã tìm văn bản \\
+RRF & Reciprocal Rank Fusion & Cách gộp hai bảng xếp hạng BM25 và vector \\
+SPA & Single Page Application & Giao diện React một trang \\
+SSE & Server-Sent Events & Đẩy token và tiến độ từ máy chủ xuống trình duyệt \\
+TNCN & Thu nhập cá nhân & Thuế khấu trừ tiền lương \\
+TNDN & Thu nhập doanh nghiệp & Thuế trên lợi nhuận \\
+VBQPPL & Văn bản quy phạm pháp luật & Luật, nghị định, thông tư trong corpus \\
+\bottomrule
+\end{longtable}
+
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{chapter}{DANH MỤC HÌNH VẼ}
+\listoffigures
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{chapter}{DANH MỤC BẢNG}
+\listoftables
+\clearpage

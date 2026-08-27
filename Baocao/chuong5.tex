@@ -1,0 +1,51 @@
+\chapter{Kết luận và hướng phát triển}
+
+\section{Những gì đồ án thực sự làm được}
+
+Em đã có một trang web chạy được trên Docker, nhiều tài khoản, nhiều công ty.
+Người dùng hỏi tiếng Việt thường, nhận câu có danh sách Điều bấm ra nguyên văn.
+Họ đọc được kho \soLuat{} văn bản theo cây, tìm được cả khi gõ thiếu dấu. Họ tải
+hợp đồng và nhận bảng rủi ro (khi có khóa mô hình). Họ có lịch các mốc thuế --
+bảo hiểm -- lao động -- BCTC sinh từ đúng hồ sơ mình khai.
+
+Về kỹ thuật, chỗ em cho là đáng kể không nằm ở việc ``dùng RAG'' --- hướng đó
+người khác làm nhiều. Chỗ đáng kể hơn là các quyết định nhỏ khi cài: cắt theo
+Điều; gộp BM25 với vector; gỡ căn cứ không nằm trong tập truy hồi; tìm không dấu
+mà vẫn hiện có dấu; cột \texttt{seq} vì \texttt{now()} trùng nhau; 404 khi xem
+lén hội thoại; backend không tự sát khi thiếu API key.
+
+Kiểm thử: \soTest{} test, backend chạy trên Postgres thật. Em coi đó là phần bắt
+buộc của đồ án ngành, không phải phụ lục cho có.
+
+\section{Những gì cố tình không làm, và những gì còn yếu}
+
+Không OCR --- PDF ảnh fail lúc tải. Không hàng đợi Redis. Không chọn tự động bản
+luật còn hiệu lực khi hai số hiệu trùng tên khác năm. Không so F2 Gemini với F2
+Qwen trên cùng bộ câu. Giao diện chưa tối cho điện thoại. Token đang để
+\texttt{localStorage}.
+
+Hậu kiểm chỉ bắt số Điều, không bắt được chuyện mô hình diễn giải sai Điều đúng.
+HyDE và lọc LLM tốn hạn mức; trên gói miễn phí, nhúng lại \soDieu{} Điều dễ bị
+429 --- vì vậy mới có chia lô và nghỉ dần.
+
+\section{Hướng phát triển}
+
+\begin{enumerate}
+    \item OCR trước khi trích chữ, hoặc từ chối rõ ``đây là PDF ảnh''.
+    \item Cột hiệu lực (ngày ban hành, hết hiệu lực) trên từng Điều, lọc khi
+    truy hồi.
+    \item Đo F2 trên bộ vài trăm câu nội bộ, cùng corpus, hai endpoint mô hình.
+    \item Đưa soát xét hợp đồng sang worker riêng khi file dài.
+    \item Viện dẫn chéo thành đồ thị cho câu hỏi đa văn bản.
+    \item Cookie \texttt{HttpOnly} + CSP; đưa token ra khỏi \texttt{localStorage}.
+    \item Bố cục hẹp cho màn điện thoại --- kế toán hay hỏi lúc đang ở cửa hàng.
+\end{enumerate}
+
+\section{Kết luận}
+
+Đồ án bắt đầu từ chuyện một công ty nhỏ hỏi luật trên mạng và không biết câu nào
+bịa. Em không giải được chuyện đó cho mọi ngành luật. Em giải, ở mức một đồ án
+ngành, cho một kho hẹp và bốn việc lặp lại của DNNVV.
+
+Nếu mỗi lần hỏi, người dùng đều mở được Điều gốc ra đọc trước khi copy câu máy
+vào tờ khai hay vào hợp đồng, thì sản phẩm đã làm đúng việc nó nhận.

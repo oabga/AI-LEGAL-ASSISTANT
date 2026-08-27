@@ -1,0 +1,54 @@
+\xpginauxfiletrue 
+\addvspace {10\p@ }
+\setforeignlanguage {vietnamese}
+\addvspace {10\p@ }
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\addvspace {10\p@ }
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Ba lớp triển khai: trình duyệt $\rightarrow $ nginx $\rightarrow $ FastAPI; PostgreSQL, Chroma và Gemini nằm phía sau API.}}{13}{figure.caption.16}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Sơ đồ use case. Chủ / kế toán / nhân sự dùng bốn nghiệp vụ; quản trị thêm corpus và lab.}}{15}{figure.caption.18}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Bảy nút LangGraph: nhánh SKIP thoát sớm; rerank tắt trên sản phẩm Gemini.}}{17}{figure.caption.24}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Kiến trúc ba lớp: trình bày, ứng dụng, dữ liệu.}}{18}{figure.caption.26}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Lược đồ quan hệ chính. Hội thoại thuộc user; hợp đồng và lịch thuộc organization.}}{18}{figure.caption.28}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Luồng hỏi đáp: ghi câu hỏi trước, stream SSE, ghi câu trả lời ở session CSDL riêng.}}{20}{figure.caption.29}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Luồng soát xét hợp đồng: trả 202 ngay, xử lý nền, UI poll trạng thái.}}{20}{figure.caption.30}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Máy trạng thái tài liệu: pending $\rightarrow $ ready $\rightarrow $ processing $\rightarrow $ done/failed.}}{20}{figure.caption.31}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\addvspace {10\p@ }
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Bố cục trang hỏi đáp: cột hội thoại, vết pipeline, câu trả lời và citation.}}{27}{figure.caption.37}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Bố cục trang tra cứu: cây Chương--Điều và tìm không dấu.}}{28}{figure.caption.38}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Bố cục trang hợp đồng: upload và bảng rủi ro.}}{28}{figure.caption.39}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Bố cục trang lịch tuân thủ: ô đếm và nhóm theo tháng.}}{29}{figure.caption.40}%
+\setforeignlanguage {vietnamese}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Phân bố số test tự động đạt trên máy làm đồ án.}}{29}{figure.caption.41}%
+\setforeignlanguage {vietnamese}
+\addvspace {10\p@ }
+\xpginauxfilefalse 

@@ -1,0 +1,182 @@
+% Các sơ đồ TikZ dùng chung — thay cho ảnh PNG đen (demo graphicx).
+% Gọi bằng \hinhKienTruc, \hinhUseCase, ... trong môi trường figure.
+
+\newcommand{\hinhKienTruc}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  box/.style={draw=black!70, rounded corners=2pt, align=center,
+    minimum height=1.1cm, minimum width=2.6cm, fill=blue!6},
+  arr/.style={-{Latex}, thick}
+]
+\node[box] (browser) at (0,3.2) {Trình duyệt\\React SPA};
+\node[box, fill=green!8] (nginx) at (4.2,3.2) {nginx\\static + proxy \texttt{/api}};
+\node[box, fill=orange!10] (api) at (4.2,1.2) {FastAPI\\REST + SSE};
+\node[box, fill=yellow!15] (pg) at (0,1.2) {PostgreSQL 17\\FTS + nghiệp vụ};
+\node[box, fill=purple!8] (chroma) at (8.0,1.2) {Chroma\\vector Điều};
+\node[box, fill=red!6] (gemini) at (8.0,3.2) {Gemini API\\LLM + embedding};
+\draw[arr] (browser) -- (nginx);
+\draw[arr] (nginx) -- (api);
+\draw[arr] (api) -- (pg);
+\draw[arr] (api) -- (chroma);
+\draw[arr] (api) -- (gemini);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhUseCase}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  actor/.style={draw, ellipse, align=center, minimum width=1.8cm, minimum height=0.9cm},
+  uc/.style={draw, rounded corners=2pt, align=center, minimum width=3.4cm,
+    minimum height=0.55cm, fill=blue!4},
+  sys/.style={draw=black!60, dashed, inner sep=8pt}
+]
+\node[actor] (guest) at (0,4.5) {Khách};
+\node[actor] (owner) at (0,2.8) {Chủ DN};
+\node[actor] (acc) at (0,1.2) {Kế toán\\/ Nhân sự};
+\node[actor] (admin) at (0,-0.4) {Quản trị};
+
+\begin{scope}[local bounding box=sysbox]
+\node[uc] (uc01) at (5.2,5.0) {UC-01 Đăng ký};
+\node[uc] (uc02) at (5.2,4.3) {UC-02 Đăng nhập};
+\node[uc] (uc03) at (5.2,3.4) {UC-03 Hỏi đáp};
+\node[uc] (uc05) at (5.2,2.7) {UC-05 Tra cứu luật};
+\node[uc] (uc07) at (5.2,2.0) {UC-07 Soát hợp đồng};
+\node[uc] (uc09) at (5.2,1.3) {UC-09 Lịch tuân thủ};
+\node[uc] (uc10) at (5.2,0.4) {UC-10 Quản trị corpus};
+\node[uc] (uc12) at (5.2,-0.3) {UC-12 Lab thi đấu};
+\end{scope}
+\node[sys, fit=(uc01)(uc12), label=above:{\small Hệ thống trợ lý pháp lý}] {};
+
+\draw (guest) -- (uc01); \draw (guest) -- (uc02);
+\draw (owner) -- (uc03); \draw (owner) -- (uc05);
+\draw (owner) -- (uc07); \draw (owner) -- (uc09);
+\draw (acc) -- (uc03); \draw (acc) -- (uc05);
+\draw (acc) -- (uc07); \draw (acc) -- (uc09);
+\draw (admin) -- (uc10); \draw (admin) -- (uc12);
+\draw (admin) -- (uc03);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhRag}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  n/.style={draw, rounded corners=2pt, align=center, minimum width=2.3cm,
+    minimum height=0.7cm, fill=blue!5},
+  d/.style={-{Latex}, thick},
+  skip/.style={-{Latex}, thick, red!60!black}
+]
+\node[n] (a) at (0,0) {analyze\_intent};
+\node[n] (b) at (3.0,0) {prepare\_query};
+\node[n] (c) at (6.0,0) {retrieve};
+\node[n] (d) at (9.0,0) {rerank\\(tắt)};
+\node[n] (e) at (3.0,-1.6) {llm\_filter};
+\node[n] (f) at (6.0,-1.6) {generate};
+\node[n] (g) at (9.0,-1.6) {format\_\\submission};
+\node[n, fill=red!8] (skip) at (0,-1.6) {SKIP / hết};
+\draw[d] (a) -- (b); \draw[d] (b) -- (c); \draw[d] (c) -- (d);
+\draw[d] (d) |- (e); \draw[d] (e) -- (f); \draw[d] (f) -- (g);
+\draw[skip] (a) -- (skip);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhLop}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  layer/.style={draw, rounded corners=3pt, align=center, minimum height=1.35cm,
+    minimum width=11.2cm},
+]
+\node[layer, fill=cyan!10] (ui) at (0,3.6)
+  {\textbf{Lớp trình bày:} React 19 + Vite + TanStack Query + Zustand + Tailwind};
+\node[layer, fill=orange!12] (app) at (0,1.8)
+  {\textbf{Lớp ứng dụng:} FastAPI routers (auth, chat, laws, documents,\\
+   compliance, admin, lab) + LangGraph agent + BackgroundTasks};
+\node[layer, fill=green!10] (data) at (0,0)
+  {\textbf{Lớp dữ liệu:} PostgreSQL (nghiệp vụ + FTS) · Chroma (vector) · BM25 RAM};
+\draw[-{Latex}, thick] (ui) -- (app);
+\draw[-{Latex}, thick] (app) -- (data);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhCsdl}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  t/.style={draw, align=left, rounded corners=2pt, fill=yellow!12,
+    minimum width=2.8cm, inner sep=3pt}
+]
+\node[t] (org) at (0,2.4) {\texttt{organizations}\\+ vat\_period};
+\node[t] (user) at (3.4,2.4) {\texttt{users}\\+ role};
+\node[t] (conv) at (6.8,2.4) {\texttt{conversations}};
+\node[t] (msg) at (6.8,0.8) {\texttt{messages}\\+ seq};
+\node[t] (doc) at (0,0.8) {\texttt{documents}};
+\node[t] (rev) at (3.4,0.8) {\texttt{reviews /}\\\texttt{findings}};
+\node[t] (task) at (0,-0.8) {\texttt{compliance\_}\\\texttt{tasks}};
+\node[t] (law) at (3.4,-0.8) {\texttt{laws}};
+\node[t] (lkr) at (6.8,-0.8) {\texttt{legal\_knowledge}\\\texttt{\_records}};
+\draw[-{Latex}] (org) -- (user);
+\draw[-{Latex}] (user) -- (conv);
+\draw[-{Latex}] (conv) -- (msg);
+\draw[-{Latex}] (org) -- (doc);
+\draw[-{Latex}] (doc) -- (rev);
+\draw[-{Latex}] (org) -- (task);
+\draw[-{Latex}] (law) -- (lkr);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhChatSeq}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  actor/.style={align=center},
+  msg/.style={-{Latex}, thick}
+]
+\node[actor] (u) at (0,0) {Trình duyệt};
+\node[actor] (a) at (4.2,0) {API};
+\node[actor] (g) at (8.4,0) {LangGraph};
+\draw (u) -- ++(0,-5.2); \draw (a) -- ++(0,-5.2); \draw (g) -- ++(0,-5.2);
+\draw[msg] (0,-0.5) -- node[above,font=\tiny]{POST /chat/stream} (4.2,-0.5);
+\draw[msg] (4.2,-1.1) -- node[above,font=\tiny]{INSERT câu hỏi} (4.2,-1.1);
+\node[font=\tiny,anchor=west] at (4.4,-1.1) {ghi DB};
+\draw[msg] (4.2,-1.8) -- node[above,font=\tiny]{chạy graph} (8.4,-1.8);
+\draw[msg] (8.4,-2.5) -- node[above,font=\tiny]{SSE status/token} (0,-2.5);
+\draw[msg] (8.4,-3.3) -- node[above,font=\tiny]{result} (4.2,-3.3);
+\draw[msg] (4.2,-4.0) -- node[above,font=\tiny]{INSERT câu trả lời} (4.2,-4.0);
+\node[font=\tiny,anchor=west] at (4.4,-4.0) {session mới};
+\draw[msg] (4.2,-4.7) -- node[above,font=\tiny]{SSE result} (0,-4.7);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhHopDongSeq}{%
+\begin{tikzpicture}[
+  font=\scriptsize,
+  n/.style={draw, rounded corners=2pt, align=center, minimum width=2.1cm,
+    minimum height=0.65cm, fill=teal!8},
+  d/.style={-{Latex}, thick}
+]
+\node[n] (u) {Upload file};
+\node[n, right=0.5cm of u] (e) {Trích chữ};
+\node[n, right=0.5cm of e] (r) {ready};
+\node[n, right=0.5cm of r] (p) {POST review\\202};
+\node[n, below=0.7cm of p] (bg) {Background:\\cắt khoản + RAG};
+\node[n, left=0.5cm of bg] (d) {done / failed};
+\node[n, left=0.5cm of d] (ui) {UI poll 2,5s};
+\draw[d] (u)--(e)--(r)--(p);
+\draw[d] (p)--(bg)--(d)--(ui);
+\end{tikzpicture}%
+}
+
+\newcommand{\hinhTrangThai}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  s/.style={draw, rounded corners=2pt, minimum width=2.0cm, minimum height=0.7cm,
+    align=center, fill=gray!10},
+  d/.style={-{Latex}, thick}
+]
+\node[s] (p) {pending};
+\node[s, fill=blue!12, right=0.6cm of p] (r) {ready};
+\node[s, fill=orange!15, right=0.6cm of r] (x) {processing};
+\node[s, fill=green!15, right=0.6cm of x] (d) {done};
+\node[s, fill=red!12, below=0.7cm of x] (f) {failed};
+\draw[d] (p)--(r)--(x)--(d);
+\draw[d] (x)--(f);
+\draw[d, dashed] (f)|-(r);
+\end{tikzpicture}%
+}

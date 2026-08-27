@@ -1,0 +1,621 @@
+\chapter{Phân tích, thiết kế và hiện thực}
+
+\section{Hệ thống nhìn từ phía người bấm}
+
+Người dùng tạo tài khoản, khai tên công ty, mã số thuế, số lao động, kỳ kê
+khai GTGT. Bốn việc chính sau đó:
+
+\textbf{Hỏi.} Gõ câu hỏi, thấy từng bước (đang tìm, đang lọc, đang viết), thấy
+từng chữ hiện ra, thấy danh sách Điều bấm được. Hội thoại cũ nằm cột trái, sống
+sót khi restart máy chủ.
+
+\textbf{Đọc luật.} Lọc theo lĩnh vực, vào một văn bản, đi từ Chương xuống Điều,
+bấm viện dẫn chéo, hoặc bấm ``Hỏi AI về Điều này'' để câu hỏi được điền sẵn
+kèm số hiệu.
+
+\textbf{Đưa hợp đồng.} Kéo file PDF/DOCX/TXT, tối đa 10~MB. Máy trích chữ ngay
+(lỗi file lộ lúc tải, không đợi). Bấm soát xét thì chạy nền; trang hỏi trạng
+thái mỗi vài giây. Kết quả là bảng: điều khoản, mức cao/trung bình/thấp, đề
+xuất sửa, căn cứ.
+
+\textbf{Nhìn lịch.} Các mốc trong năm, nhóm theo tháng, đánh dấu xong hoặc bỏ
+qua. Sinh lại khi đổi số lao động hay đổi kỳ GTGT.
+
+Người quản trị (tài khoản đầu tiên khi bảng user còn trống được gắn vai trò
+này) vào được kho văn bản, danh sách user, và trang lab chạy bộ câu hỏi theo
+khuôn \texttt{results.json}.
+
+\section{Yêu cầu}
+
+\subsection{Chức năng}
+
+\begin{table}[htp]
+\centering
+\caption{Yêu cầu chức năng em chốt trước khi viết API.}
+\label{tab:yc-cn}
+\begin{tabular}{p{1.6cm}p{5.2cm}p{7.0cm}}
+\toprule
+\textbf{Mã} & \textbf{Việc} & \textbf{Ghi chú khi cài} \\
+\midrule
+YC-01 & Đăng ký, đăng nhập, làm mới token, đổi mật khẩu & Access 15 phút,
+refresh 7 ngày, hai loại token không dùng lẫn \\
+YC-02 & Hỏi đáp có trích dẫn và stream & Ghi câu hỏi vào CSDL trước khi gọi
+pipeline \\
+YC-03 & Lịch sử hội thoại & Đổi tên, lưu trữ, xóa; không nhìn hội thoại người
+khác (trả 404) \\
+YC-04 & Danh mục và cây văn bản & Số hiệu có dấu \texttt{/} nên định tuyến
+phải kiểu path \\
+YC-05 & Tìm toàn văn không dấu & Ba tầng: số Điều, \texttt{ts\_rank}, trigram \\
+YC-06 & Tải và soát xét hợp đồng & Trích chữ lúc tải; chấm điểm lúc soát xét \\
+YC-07 & Lịch tuân thủ & Idempotent: gọi sinh lại không xóa việc đã đánh dấu xong \\
+YC-08 & Quản trị corpus và user & Nhập JSON, reindex, khóa tài khoản \\
+YC-09 & Lab thi đấu & Chỉ admin, giữ khuôn nộp bài cũ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phi chức năng}
+
+Thời gian: trang tra cứu phải trả trong khoảng dưới một giây trên máy em; hỏi
+đáp chấp nhận hàng chục giây nếu hiện tiến độ. Bảo mật: mật khẩu argon2, CORS
+không phải \texttt{*}, giới hạn số lần gọi chat. Sẵn sàng: thiếu embedding thì
+phần còn lại vẫn sống. Kiểm thử: không chấp nhận test chỉ chạy trên SQLite.
+
+\begin{table}[htp]
+\centering
+\caption{Ngưỡng phi chức năng em tự đặt khi viết code.}
+\label{tab:yc-phi-cn}
+\begin{tabular}{p{3.2cm}p{5.0cm}p{5.5cm}}
+\toprule
+\textbf{Nhóm} & \textbf{Ngưỡng} & \textbf{Cách kiểm} \\
+\midrule
+Độ trễ tra cứu & $< 1$ giây trên máy em với FTS & Gọi \texttt{/laws/search} \\
+Độ trễ hỏi đáp & Chấp nhận hàng chục giây nếu có SSE tiến độ & Quan sát UI \\
+Bảo mật mật khẩu & argon2id, tối thiểu 8 ký tự & Test đăng ký \\
+Cách ly dữ liệu & Hội thoại theo user; hợp đồng/lịch theo org & Test 404 \\
+Sẵn sàng suy giảm & Thiếu embedding: health 200, chat 503 & Smoke Docker \\
+Giới hạn tần suất & Chat 20/phút; upload 30/giờ & slowapi \\
+Kiểm thử & Không chấp nhận test chỉ xanh trên SQLite & CI/pytest local \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Kiến trúc ba lớp}
+
+\begin{figure}[htp]
+\centering
+\hinhKienTruc
+\caption{Ba lớp triển khai: trình duyệt $\rightarrow$ nginx $\rightarrow$ FastAPI;
+PostgreSQL, Chroma và Gemini nằm phía sau API.}
+\label{fig:kien-truc-he-thong}
+\end{figure}
+
+Lúc cài bằng Docker, trình duyệt chỉ nói chuyện với cổng frontend. Nginx vừa
+đưa file tĩnh vừa chuyển \texttt{/api} sang backend, nên không có chuyện CORS
+trên môi trường đó. Lúc em lập trình, Vite làm đúng việc chuyển tiếp ấy trên
+cổng 5173.
+
+Logic RAG không nằm trong file router. Router chỉ nhận request, ghi hội thoại,
+gọi agent. Cùng một hàm truy hồi được soát xét hợp đồng gọi lại. Ban đầu em
+định copy prompt sang module hợp đồng cho ``nhanh''; rồi nhận ra sửa một chỗ
+sót một chỗ, nên tách sớm.
+
+BM25 không để Postgres. Khởi động backend: đọc Điều từ Postgres, nếu file cache
+khớp dấu vân tay tokenizer thì nạp cache, không thì tách từ lại và ghi cache.
+Vector: nếu manifest (model, số chiều, số record) lệch thì nhúng lại, có chia
+lô và nghỉ dần khi bị 429.
+
+\section{Use case}
+
+\begin{table}[htp]
+\centering
+\caption{Tác nhân.}
+\label{tab:vai-tro}
+\begin{tabular}{p{3.0cm}p{5.4cm}p{5.4cm}}
+\toprule
+\textbf{Tác nhân} & \textbf{Người nào} & \textbf{Được làm} \\
+\midrule
+Chủ doanh nghiệp & Người mở tài khoản công ty & Cả bốn nghiệp vụ trong công ty
+mình \\
+Kế toán, Nhân sự & Người được mời vào cùng công ty & Cùng bốn nghiệp vụ; không
+vào trang quản trị \\
+Quản trị & Tài khoản đầu, hoặc được đổi role & Thêm quyền corpus, user, lab \\
+Khách & Chưa đăng nhập & Chỉ đăng ký / đăng nhập \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htp]
+\centering
+\resizebox{0.95\linewidth}{!}{\hinhUseCase}
+\caption{Sơ đồ use case. Chủ / kế toán / nhân sự dùng bốn nghiệp vụ; quản trị
+thêm corpus và lab.}
+\label{fig:so-do-use-case}
+\end{figure}
+
+\begin{table}[htp]
+\centering
+\caption{Danh sách use case.}
+\label{tab:danh-sach-uc}
+\begin{tabular}{p{1.5cm}p{6.0cm}p{6.3cm}}
+\toprule
+\textbf{Mã} & \textbf{Tên} & \textbf{Ai} \\
+\midrule
+UC-01 & Tạo tài khoản kèm hồ sơ công ty & Khách \\
+UC-02 & Đăng nhập, làm mới phiên & Mọi vai trò đã có tài khoản \\
+UC-03 & Hỏi đáp pháp luật & Chủ, kế toán, nhân sự \\
+UC-04 & Xem và đổi tên hội thoại & Người sở hữu hội thoại \\
+UC-05 & Đọc văn bản theo cây Chương--Điều & Chủ, kế toán, nhân sự \\
+UC-06 & Tìm chữ trong corpus & Chủ, kế toán, nhân sự \\
+UC-07 & Tải hợp đồng và chạy soát xét & Người thuộc một công ty \\
+UC-08 & Đọc kết quả soát xét & Người cùng công ty \\
+UC-09 & Xem lịch, đánh dấu xong & Người thuộc một công ty \\
+UC-10 & Nhập thêm văn bản, dựng lại chỉ mục & Quản trị \\
+UC-11 & Khóa / đổi vai trò user & Quản trị \\
+UC-12 & Chạy bộ câu hỏi lab & Quản trị \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htp]
+\centering
+\caption{Đặc tả UC-03 --- Hỏi đáp.}
+\label{tab:uc03}
+\begin{tabular}{p{3.2cm}p{10.8cm}}
+\toprule
+\textbf{Trường} & \textbf{Nội dung} \\
+\midrule
+Mã & UC-03 \\
+Tóm tắt & Người dùng gửi một câu tiếng Việt, nhận câu trả lời kèm Điều dẫn. \\
+Trước khi làm & Đã đăng nhập. Chỉ mục vector sẵn thì hỏi được; chưa sẵn thì
+nhận 503 và được hướng sang trang tra cứu. \\
+Sau khi làm & Câu hỏi và câu trả lời nằm trong hội thoại, kèm JSON trích dẫn
+và vết các bước. \\
+Luồng chính & 1. Gửi câu. 2. Máy tạo hội thoại nếu chưa có, lấy vài lượt cũ.
+3. Ghi câu hỏi. 4. Chạy bảy bước, mỗi bước một sự kiện SSE. 5. Ghi câu trả
+lời khi có sự kiện kết quả. 6. Trình duyệt đổi URL sang \texttt{/chat/\{id\}}. \\
+Nhánh & Câu không phải pháp luật: thoát ở bước ý định, không tốn truy hồi.
+Không tìm ra Điều: nói không có căn cứ, không bịa. \\
+Lỗi & Mất kết nối: câu hỏi đã lưu, gửi lại được. Hết hạn mức mô hình: báo lỗi
+rõ, không xóa hội thoại. Quá số lần gọi/phút: 429. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htp]
+\centering
+\caption{Đặc tả UC-07 --- Soát xét hợp đồng.}
+\label{tab:uc07}
+\begin{tabular}{p{3.2cm}p{10.8cm}}
+\toprule
+\textbf{Trường} & \textbf{Nội dung} \\
+\midrule
+Mã & UC-07 \\
+Tóm tắt & Tải file, chạy soát xét nền, đọc bảng rủi ro. \\
+Trước khi làm & Đã gắn công ty. File \texttt{.pdf}, \texttt{.docx} hoặc
+\texttt{.txt}, $\le 10$~MB. \\
+Sau khi làm & Tài liệu \texttt{done} hoặc \texttt{failed}. Có thể chạy lại. \\
+Luồng chính & 1. Tải, trích chữ, trạng thái \texttt{ready}. 2. Bấm soát xét,
+trả 202 ngay. 3. Nền: cắt điều khoản, mỗi khoản đi truy hồi, chấm rủi ro. 4.
+Trang hỏi lại mỗi 2,5 giây. \\
+Nhánh & PDF ảnh (không có lớp chữ): fail lúc tải, không lúc soát xét --- em
+cố tình vậy để người dùng biết ngay. Quá nhiều điều khoản: cắt theo ngưỡng
+cấu hình, ghi trong tóm tắt. \\
+Lỗi & Sai định dạng: 400. Mất mô hình giữa chừng: \texttt{failed}, bấm thử
+lại. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Đặc tả bổ sung UC-05 và UC-09}
+
+\begin{table}[htp]
+\centering
+\caption{Đặc tả UC-05 --- Tra cứu và đọc văn bản.}
+\label{tab:uc05}
+\begin{tabular}{p{3.2cm}p{10.8cm}}
+\toprule
+\textbf{Trường} & \textbf{Nội dung} \\
+\midrule
+Mã & UC-05 \\
+Tóm tắt & Duyệt cây Chương--Điều, tìm chữ (kể cả không dấu), mở viện dẫn chéo. \\
+Trước khi làm & Đã đăng nhập. Corpus đã nạp Postgres (không cần Chroma). \\
+Sau khi làm & Người dùng đọc được nguyên văn Điều; có thể chuyển sang hỏi đáp. \\
+Luồng chính & 1. Mở \texttt{/laws}. 2. Lọc lĩnh vực hoặc chọn số hiệu. 3. Xem cây.
+4. Mở Điều. 5. (Tuỳ chọn) bấm viện dẫn hoặc ``Hỏi AI về Điều này''. \\
+Nhánh tìm & Gõ ô tìm: ưu tiên số Điều; rồi FTS; rồi trigram nếu không hit. \\
+Lỗi & Số hiệu sai đường dẫn: 404. Query rỗng: không gọi API. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htp]
+\centering
+\caption{Đặc tả UC-09 --- Lịch tuân thủ.}
+\label{tab:uc09}
+\begin{tabular}{p{3.2cm}p{10.8cm}}
+\toprule
+\textbf{Trường} & \textbf{Nội dung} \\
+\midrule
+Mã & UC-09 \\
+Tóm tắt & Xem, đánh dấu, sinh lại các mốc nghĩa vụ theo hồ sơ công ty. \\
+Trước khi làm & User thuộc một organization có \texttt{vat\_period}, số lao động. \\
+Sau khi làm & Task phản ánh đúng rule áp dụng; việc đã tick không bị xóa khi sinh lại. \\
+Luồng chính & 1. Đăng ký/cập nhật hồ sơ. 2. Hệ thống sinh cửa sổ 3 tháng trước +
+12 tháng tới. 3. User xem theo tháng, đánh dấu xong/bỏ qua. 4. Đổi hồ sơ thì
+bấm sinh lại. \\
+Nhánh & Công ty $< 10$ lao động: không có rule ATVSLĐ. GTGT tháng/quý loại trừ lẫn nhau. \\
+Lỗi & Chưa gắn công ty: API từ chối. Rule thiếu legal\_refs: không seed (em bắt trong code). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Bảy bước hỏi đáp}
+
+\label{sec:pipeline}
+
+Đồ thị LangGraph có đúng bảy nút, tên trong code giữ tiếng Anh vì em không muốn
+đổi identifier khi port từ bài thi. Thứ tự chạy cố định, trừ hai nhánh thoát.
+
+\begin{enumerate}
+    \item \texttt{analyze\_intent}. Mô hình chỉ được trả \texttt{NEXT} hoặc
+    \texttt{SKIP}. Câu chào, hỏi giờ, hỏi ``ăn gì'' dừng tại đây, không tốn
+    nhúng. Lab thi đấu bỏ qua nút này để mọi câu trong bộ đề đều đi hết đường.
+    \item \texttt{prepare\_retrieval\_query}. Cấu hình sản phẩm: HyDE bật, viết
+    lại truy vấn nhiều biến thể tắt. Em thử bật cả hai một lần; vừa chậm vừa
+    đốt hạn mức, trong khi lúc hỏi tay HyDE đã kéo được Điều đúng giọng luật.
+    Nếu gọi HyDE lỗi (hết hạn mức, timeout), nút này nuốt lỗi và tìm bằng câu
+    gốc --- không được phép làm hỏng cả lượt hỏi chỉ vì một đoạn giả.
+    \item \texttt{retrieve}. BM25 và Chroma chạy song song, gộp RRF,
+    $k_{\mathrm{RRF}}=60$, trọng số dense/BM25 $= 3/1$, lấy top $k=8$ Điều.
+    \item \texttt{rerank}. Trong file cấu hình đang tắt. Gemini không có cổng
+    rerank; chỗ gắn Qwen reranker cục bộ vẫn để đó nếu ai đó bật lab.
+    \item \texttt{llm\_filter}. Tối đa 3 Điều lọc song song, giữ tối thiểu 2
+    (tránh lọc sạch rồi không còn gì để viết). Mỗi ứng viên được hỏi ``có dính
+    câu hỏi này không'', chỉ được trả có hoặc không.
+    \item \texttt{generate\_answer}. Nhiệt độ 0, tối đa 4096 token, stream từng
+    token xuống SSE. Prompt hệ thống siết: chỉ kết luận từ căn cứ đang có; thiếu
+    căn cứ thì nói thiếu, không bịa mức phạt.
+    \item \texttt{format\_submission}. Regex lấy các cụm ``Điều~$n$'' trong câu
+    trả lời, đối chiếu với danh sách id vừa truy hồi. Số không có trong danh sách bị
+    gỡ khỏi mảng citation gửi xuống giao diện. Câu chữ giữ nguyên --- em không
+    xóa luôn đoạn mô hình đã viết, vì xóa lung tung dễ làm câu sượng; chỉ không
+    cho bấm vào một nguồn giả.
+\end{enumerate}
+
+\begin{figure}[htp]
+\centering
+\resizebox{0.98\linewidth}{!}{\hinhRag}
+\caption{Bảy nút LangGraph: nhánh SKIP thoát sớm; rerank tắt trên sản phẩm Gemini.}
+\label{fig:hoat-dong-rag}
+\end{figure}
+
+\section{Corpus}
+
+\label{sec:corpus}
+
+Kho nằm trong \texttt{data/base\_data.json}: \soDieu{} bản ghi. Tệp kê khai
+\texttt{corpus/law\_manifest.json} gắn lĩnh vực cho từng số hiệu, dùng để đổ
+bảng \texttt{laws} mỗi lần backend lên.
+
+\begin{table}[htp]
+\centering
+\caption{Đếm nhanh theo loại và theo lĩnh vực (một văn bản vào đúng một lĩnh vực).}
+\label{tab:corpus}
+\begin{tabular}{p{3.4cm}r p{4.8cm}r}
+\toprule
+\textbf{Loại} & \textbf{Số} & \textbf{Lĩnh vực} & \textbf{Số} \\
+\midrule
+Luật & 19 & Thuế & 12 \\
+Nghị định & 14 & Lao động & 4 \\
+Thông tư & 3 & Sở hữu trí tuệ & 4 \\
+Bộ luật & 2 & Doanh nghiệp & 3 \\
+ &  & Dân sự -- hợp đồng & 3 \\
+ &  & Kế toán -- tài chính & 3 \\
+ &  & Còn lại (BHXH, ATVSLĐ, NTD, đất đai, hỗ trợ DNNVV) & 9 \\
+\midrule
+\textbf{Cộng} & \textbf{38} & \textbf{Cộng} & \textbf{38} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Thuế nhiều nhất vì lịch tuân thủ và câu hỏi hàng ngày của kế toán tập trung ở
+đó. Có cả luật cũ và luật mới cùng tên (ví dụ Luật GTGT 13/2008 và 48/2024):
+em giữ cả hai số hiệu vì hợp đồng và tình huống thực tế vẫn dẫn bản đang có
+hiệu lực tại thời điểm ký. Việc ``chọn đúng bản còn hiệu lực'' em chưa tự động
+hóa --- đây là hạn chế, không giấu.
+
+\label{sec:chunking}
+Cắt theo Điều đã nói ở Chương~2. Trường \texttt{extra} giữ viện dẫn. Bảng
+\texttt{legal\_knowledge\_records} giữ khóa \texttt{id} nguyên từ file JSON,
+không tự tăng, để Chroma và Postgres chỉ cùng một mã.
+
+\section{Mô hình dữ liệu}
+
+\begin{figure}[htp]
+\centering
+\hinhLop
+\caption{Kiến trúc ba lớp: trình bày, ứng dụng, dữ liệu.}
+\label{fig:so-do-lop}
+\end{figure}
+
+\begin{table}[htp]
+\centering
+\caption{Bảng. Tên cột chỉ liệt kê những cột em từng vấp khi cài.}
+\label{tab:bang-du-lieu}
+\begin{tabular}{p{4.0cm}p{9.8cm}}
+\toprule
+\textbf{Bảng} & \textbf{Ghi chú hiện thực} \\
+\midrule
+\texttt{organizations} & \texttt{vat\_period}, \texttt{employee\_count} quyết
+định rule nào được sinh. \texttt{tax\_code} unique. \\
+\texttt{users} & Email lower-case. Role text, không dùng ENUM native Postgres
+để khỏi \texttt{ALTER TYPE} mỗi lần thêm giá trị. \\
+\texttt{conversations} & Tiêu đề cắt từ câu hỏi đầu, tối đa 80 ký tự, cắt tại
+khoảng trắng. \\
+\texttt{messages} & Cột \texttt{seq} identity. Không sort theo
+\texttt{created\_at}. \\
+\texttt{documents} & File trên đĩa tên UUID, không lấy tên gốc. \\
+\texttt{contract\_reviews}, \texttt{contract\_findings} & Một tài liệu nhiều
+lượt soát xét, không ghi đè. \\
+\texttt{compliance\_rules} / \texttt{tasks} & Unique (công ty, rule, kỳ) để
+sinh lại không nhân bản. \\
+\texttt{legal\_knowledge\_records} & Generated: \texttt{article\_number},
+\texttt{doc\_ref}, \texttt{search\_vector}. \\
+\texttt{laws} & Đổ từ manifest + đếm Điều, mỗi lần startup. \\
+\texttt{audit\_logs} & Đăng ký, đăng xuất, đổi mật khẩu, tải file, reindex. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htp]
+\centering
+\hinhCsdl
+\caption{Lược đồ quan hệ chính. Hội thoại thuộc user; hợp đồng và lịch thuộc organization.}
+\label{fig:luoc-do-csdl}
+\end{figure}
+
+\subsection{Ba chỗ em làm sai rồi sửa}
+
+\textbf{Thứ tự tin nhắn.} Câu hỏi và câu trả lời ghi trong một transaction
+HTTP. \texttt{now()} của Postgres là mốc đầu transaction, hai dòng cùng
+\texttt{created\_at}. Lúc tải lại hội thoại, thứ tự bị đảo ngẫu nhiên. Sửa:
+cột \texttt{seq} tăng đơn điệu, API sort theo \texttt{seq}.
+
+\textbf{404 thay vì 403.} Nếu trả 403 khi xem hội thoại người khác, kẻ xấu biết
+id đó tồn tại. Em trả 404 giống ``không có''. Test có case hai tài khoản.
+
+\textbf{InMemorySaver.} LangGraph giữ lịch sử trong RAM. Restart mất. Hai
+worker mỗi bên một nửa ký ức. Đổi: đọc $N$ lượt từ Postgres nhét vào state.
+\texttt{short\_memory.max\_turns = 6}.
+
+\section{Tìm chữ trên tiếng Việt}
+
+Hàm \texttt{unaccent} mặc định là \texttt{STABLE}, không dùng trong generated
+column. Em bọc \texttt{immutable\_unaccent} trong \texttt{init.sql}, chạy bằng
+superuser lúc tạo cụm, Alembic không đụng tới (user ứng dụng không đủ quyền
+\texttt{CREATE EXTENSION}).
+
+Ba tầng tìm, theo thứ tự:
+
+\begin{enumerate}
+    \item Câu có dạng ``Điều 12'' thì lọc thẳng \texttt{article\_number}.
+    \item \texttt{tsquery} kiểu prefix (\texttt{doanh:*}) trên
+    \texttt{search\_vector}, xếp \texttt{ts\_rank\_cd}.
+    \item Nếu không ra dòng nào, \texttt{pg\_trgm} với ngưỡng 0,3 trên tiêu đề
+    Điều và tên văn bản --- cứu gõ sai.
+\end{enumerate}
+
+Hàm \texttt{ts\_headline} chạy trên cột đã bỏ dấu, trả về đoạn không dấu. Em
+không dùng. Backend gửi list token; React bôi \texttt{<mark>} trên chữ gốc
+bằng so khớp bỏ dấu phía client. Việc này em viết test riêng vì dễ lệch dấu
+thanh.
+
+\section{Luồng thời gian thực và lưu hội thoại}
+
+\begin{figure}[htp]
+\centering
+\hinhChatSeq
+\caption{Luồng hỏi đáp: ghi câu hỏi trước, stream SSE, ghi câu trả lời ở session CSDL riêng.}
+\label{fig:tuan-tu-chat}
+\end{figure}
+
+Ba loại sự kiện: \texttt{status}, \texttt{token}, \texttt{result}. Có heartbeat
+khi một bước kéo dài, để proxy khỏi cắt kết nối. Client không dùng
+\texttt{EventSource}.
+
+\section{Hợp đồng}
+
+Cắt điều khoản bằng regex tiêu đề ``Điều n'', ``Article n'', hoặc dòng số kiểu
+``5. Thanh toán''. Ưu tiên đuôi file vì trình duyệt hay khai
+\texttt{application/octet-stream}. Khoản dưới 80 ký tự ghép vào khoản trước ---
+thường là tiêu đề mục. Khoản dài quá 6000 ký tự bị cắt để khỏi vượt ngữ cảnh.
+Tối đa 60 khoản một lượt; hợp đồng mẫu DNNVV em thử (vài trang) nằm dưới ngưỡng
+này. Mỗi khoản gọi lại cùng hàm truy hồi của hỏi đáp, lấy 4 Điều, rồi mô hình
+gán mức \texttt{cao} / \texttt{trung bình} / \texttt{thấp} / \texttt{thông tin}.
+Điểm tổng 0--100 từ trọng số mức. PDF không có lớp chữ (scan) fail lúc tải, có
+câu tiếng Việt bảo cần OCR --- không đợi đến lúc bấm soát xét mới báo.
+
+\begin{figure}[htp]
+\centering
+\resizebox{0.95\linewidth}{!}{\hinhHopDongSeq}
+\caption{Luồng soát xét hợp đồng: trả 202 ngay, xử lý nền, UI poll trạng thái.}
+\label{fig:tuan-tu-hopdong}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\hinhTrangThai
+\caption{Máy trạng thái tài liệu: pending $\rightarrow$ ready $\rightarrow$ processing $\rightarrow$ done/failed.}
+\label{fig:trang-thai-tai-lieu}
+\end{figure}
+
+Lúc viết frontend, Axios gắn sẵn \texttt{Content-Type: application/json}, gửi
+\texttt{FormData} là hỏng biên multipart. Em gỡ header đó khi body là
+\texttt{FormData}. Đây là lỗi chỉ lộ khi bấm tải file, test API bằng httpx
+\texttt{files=} thì không dính.
+
+\section{Lịch tuân thủ}
+
+\soRule{} rule nằm trong code Python, seed mỗi lần backend lên. Em cố tình không
+nhét hạn chót vào file cấu hình YAML: rule gắn \texttt{legal\_refs} (số hiệu +
+tên văn bản + số Điều). Nếu một hạn chót đổi vì luật mới, người sửa phải đổi
+cả refs, không được chỉ sửa ngày.
+
+\begin{table}[htp]
+\centering
+\caption{Mười hai rule em cài, và điều kiện hồ sơ để rule được sinh.}
+\label{tab:compliance-rules}
+\begin{tabular}{p{4.4cm}p{3.0cm}p{6.4cm}}
+\toprule
+\textbf{Mã} & \textbf{Kỳ} & \textbf{Điều kiện / hạn chót em lấy} \\
+\midrule
+\texttt{VAT\_MONTHLY} & Tháng & Chỉ khi khai GTGT tháng; ngày 20 tháng sau \\
+\texttt{VAT\_QUARTERLY} & Quý & Chỉ khi khai quý; cuối tháng đầu quý sau \\
+\texttt{CIT\_PROVISIONAL} & Quý & Mọi công ty; ngày 30 tháng đầu quý sau \\
+\texttt{CIT\_FINALIZATION} & Năm & Cuối tháng 3 \\
+\texttt{PIT\_FINALIZATION} & Năm & Có từ 1 lao động; cuối tháng 3 \\
+\texttt{BUSINESS\_LICENSE\_FEE} & Năm & 30/01 \\
+\texttt{SOCIAL\_INSURANCE\_MONTHLY} & Tháng & Có lao động; cuối tháng \\
+\texttt{LABOUR\_REPORT\_H1} / \texttt{H2} & Năm & 05/06 và 05/12 \\
+\texttt{LABOUR\_SAFETY\_REPORT} & Năm & Từ 10 lao động; 10/01 năm sau \\
+\texttt{FINANCIAL\_STATEMENT} & Năm & Cuối tháng 3 \\
+\texttt{INVOICE\_USAGE\_CHECK} & Quý & Rà hóa đơn điện tử, ngày 15 tháng sau quý \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sinh cửa sổ 3 tháng trước (để thấy việc đã quá hạn) và 12 tháng tới. Khóa duy
+nhất (công ty, rule, kỳ) nên bấm ``Sinh lại lịch'' sau khi đổi số lao động không
+xóa việc đã tick xong. Công ty 12 người, khai quý: lúc đăng ký em đếm được 39
+task --- có GTGT quý, không có GTGT tháng, có báo cáo an toàn lao động vì đủ
+ngưỡng 10 người. Công ty 3 người khai tháng thì đảo lại: có rule tháng, không
+có báo cáo an toàn. Test backend bắt đúng hai nhánh này.
+
+Hạn chế thẳng thắn: hạn chót em lấy từ Điều trong corpus tại thời điểm thu thập.
+Luật sửa sau đó mà chưa nhập văn bản mới thì lịch vẫn nhắc ngày cũ. Hệ thống
+không tự đọc công báo.
+
+\section{Đăng nhập, phiên làm việc, bảo mật}
+
+Mật khẩu băm argon2id (passlib). JWT thuật toán HS256, hai loại token, payload
+có \texttt{sub}, \texttt{type}, \texttt{iat}, \texttt{exp}, \texttt{jti}. Access
+sống 15 phút, refresh 7 ngày. Gọi API bằng refresh token bị từ chối vì
+\texttt{type} không khớp --- em từng thử nhầm hai token lúc viết interceptor,
+đúng ra lỗi đó.
+
+Tài khoản đăng ký đầu tiên, khi bảng \texttt{users} còn trống, được gắn
+\texttt{admin}. Cờ \texttt{bootstrap\_first\_admin} bật mặc định. Không có tài
+khoản ``admin/admin'' cứng trong image, vì em không muốn mật khẩu mẫu nằm trong
+Docker Hub sau này.
+
+Phía trình duyệt, Axios gắn sẵn \texttt{Authorization}. Gặp 401, một lần
+refresh được chia cho mọi request đang chờ (một \texttt{Promise} chung), tránh
+gọi \texttt{/auth/refresh} song song rồi làm hỏng phiên. Endpoint auth không đi
+vào vòng refresh, kẻo login sai mật khẩu cũng bị ``làm mới token''. Token nằm
+\texttt{localStorage}: lựa chọn đơn giản cho đồ án, em biết rủi ro XSS; CSP và
+cookie \texttt{HttpOnly} em chưa làm.
+
+CORS: danh sách origin, \texttt{allow\_credentials=true} nên không được
+\texttt{*}. Trên Docker, nginx và API cùng origin nên CORS gần như không chạy;
+danh sách chủ yếu phục vụ Vite lúc lập trình (\texttt{localhost:5173}).
+
+Giới hạn tần suất: chat 20 lần/phút, tải file 30 lần/giờ, theo từng user (hoặc
+IP nếu chưa đăng nhập). User thường gọi \texttt{/api/v1/admin/*} nhận 403.
+Hội thoại người khác: 404, đã nói ở trên.
+
+Bốn vai trò \texttt{owner}, \texttt{accountant}, \texttt{hr}, \texttt{admin}.
+Hợp đồng và lịch tuân thủ cách ly theo \texttt{organization\_id}. Hội thoại
+cách ly theo \texttt{user\_id} --- kế toán và chủ cùng công ty không đọc được
+chat của nhau. Em chọn vậy vì câu hỏi pháp lý đôi khi dính lương, kỷ luật, chuyện
+không muốn cả phòng biết.
+
+\section{Giao diện}
+
+Frontend là một SPA. Người chưa đăng nhập chỉ vào \texttt{/login} và
+\texttt{/register}. Người đã đăng nhập bị đẩy khỏi hai trang đó. Route cần phiên
+chờ \texttt{restore()} đọc token xong mới quyết định, nếu không sẽ nháy sang
+login rồi nhảy lại --- em gặp đúng lỗi đó tuần đầu.
+
+Số hiệu văn bản kiểu \texttt{45/2019/QH14} chứa dấu gạch chéo. React Router mặc
+định cắt path theo \texttt{/}, nên em bắt phần còn lại bằng
+\texttt{/laws/:lawId/*}. Backend cũng nhận path, không nhận query một đoạn, vì
+cùng lý do.
+
+Trang quản trị và lab \texttt{lazy()} tách bundle: user thường không tải code
+chạy bộ câu hỏi. TanStack Query tắt \texttt{refetchOnWindowFocus} --- corpus
+không đổi mỗi lần đổi tab, refetch chỉ tổ làm nhấp nháy cây Điều.
+
+Ảnh chụp bố cục từng trang (hỏi đáp, tra cứu, hợp đồng, lịch) đặt ở Chương~4 khi
+đánh giá giao diện, tránh trùng hình trong báo cáo.
+
+Trang hồ sơ cho sửa số lao động và kỳ GTGT; lưu xong lịch được sinh lại. Lab:
+kéo file JSON bộ câu, xem tiến độ, tải \texttt{results.json} đúng khuôn cũ.
+
+Em không kéo bộ component thịnh hành. Nút, ô, thẻ viết tay cho gọn bundle. Nền
+tối, chữ đủ tương phản để đọc Điều dài. Giao diện chưa tối cho điện thoại; thanh
+bên hội thoại trên màn hẹp sẽ chật. Em ghi vào hạn chế, không nhận đây là giao
+diện đã chạy tốt trên điện thoại.
+
+\section{Nhúng vector, cache BM25, và chuyện file \texttt{.env}}
+
+Mỗi lần đổi model nhúng hoặc đổi số chiều, backend so manifest trong thư mục
+Chroma với cấu hình hiện tại. Lệch thì nhúng lại. Lô 64 Điều, nghỉ dần khi gặp
+429 (đợi $2$ giây, nhân đôi, trần 60 giây, tối đa 6 lần). Gói miễn phí Google
+dễ đụng trần nếu nhúng \soDieu{} Điều một mạch; không có backoff thì lần đầu
+cài gần như chắc fail giữa chừng.
+
+BM25 tách từ bằng \texttt{underthesea} (fallback regex). Kết quả ghi file cache
+theo dấu vân tay tokenizer. \soDieu{} Điều tách lại mỗi lần restart thì startup
+kéo dài hàng phút; cache là chỗ em vá sau khi đo, không phải ý tưởng có từ ngày
+đầu.
+
+Một chỗ em mất buổi chiều: Docker Compose chỉ đọc \texttt{.env} ở thư mục gốc
+dự án. File \texttt{backend/.env} mà em điền khóa lúc lập trình \textbf{không}
+được compose nạp. Backend trong container cứ báo thiếu key dù máy host đã có
+key. Sửa: copy khóa lên file gốc, ghi rõ trong README. Phụ lục A lặp lại đúng
+chỗ này vì em biết người chấm (và cả em vài tuần sau) sẽ dẫm lại.
+
+Thiếu khóa: healthcheck vẫn xanh, \texttt{/health} trả ổn, đăng nhập và tra cứu
+chạy. Hỏi đáp trả 503 tiếng Việt, gợi ý dùng trang luật. Đây là chỗ thầy góp ý
+sớm; bản phác của em từng \texttt{raise} lúc import embedding client, kéo theo
+cả cụm không lên.
+
+\section{Đóng gói ba dịch vụ}
+
+Ba container trên một mạng cầu. Postgres 17, healthcheck \texttt{pg\_isready},
+volume riêng, \texttt{init.sql} tạo extension \texttt{unaccent}, \texttt{pg\_trgm}
+và hàm \texttt{immutable\_unaccent}. Backend đợi Postgres healthy rồi mới lên,
+healthcheck HTTP \texttt{/health}, \texttt{start\_period} 60 giây vì lần đầu
+Alembic và nạp catalog luật chậm. Frontend là nginx phục vụ bản Vite đã build,
+proxy \texttt{/api} sang backend, \texttt{VITE\_API\_BASE\_URL} để trống để SPA
+gọi đường dẫn tương đối --- cùng origin, hết chuyện CORS trên môi trường cài
+đặt.
+
+Cổng ra máy host: web 5173, API 8023, Postgres 23432 (không 5432, tránh đụng
+Postgres sẵn có trên máy em). Corpus và \texttt{data/} mount read-only.
+\texttt{chroma\_db} và \texttt{uploads} là volume, sống sót khi rebuild image.
+
+\section{Tóm tắt hiện thực theo module}
+
+\begin{table}[htp]
+\centering
+\caption{Ánh xạ module code $\leftrightarrow$ nghiệp vụ.}
+\label{tab:module-map}
+\begin{tabular}{p{4.2cm}p{9.5cm}}
+\toprule
+\textbf{Thư mục / router} & \textbf{Việc} \\
+\midrule
+\texttt{routers/auth} & Đăng ký, login, refresh, đổi mật khẩu \\
+\texttt{routers/legal} + \texttt{agents/} & SSE hỏi đáp, bảy nút LangGraph \\
+\texttt{routers/laws} + \texttt{legal/search} & Catalog, cây, FTS ba tầng \\
+\texttt{routers/documents} + \texttt{contracts/} & Upload, trích chữ, soát xét nền \\
+\texttt{routers/compliance} + \texttt{seed} & \soRule{} rule, sinh task \\
+\texttt{routers/admin}, \texttt{lab} & Corpus, user, competition \\
+\texttt{frontend/pages/*} & Chat, Laws, Contracts, Compliance, Admin, Lab \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Chi tiết kiểm thử số liệu và các vòng hỏi đáp em chạy tay nằm ở Chương~4 ---
+chương này chỉ chốt thiết kế và quyết định hiện thực.

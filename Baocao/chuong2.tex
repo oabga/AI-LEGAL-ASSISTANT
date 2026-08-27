@@ -1,0 +1,313 @@
+\chapter{Cơ sở lý thuyết}
+
+Chương này không chép định nghĩa giáo trình cho đủ trang. Em viết lại những khái
+niệm đúng chỗ mình dùng trong code, kèm lý do chọn hoặc bỏ.
+
+\section{Xử lý ngôn ngữ tự nhiên trong bài toán hỏi đáp}
+
+Hỏi đáp pháp lý trên văn bản là một nhánh của bài toán hỏi đáp miền mở
+(open-domain QA): đầu vào là câu hỏi ngôn ngữ tự nhiên, đầu ra là câu trả lời
+kèm (hoặc dựa trên) đoạn văn hỗ trợ. Khác QA trên Wikipedia tiếng Anh, corpus
+luật Việt Nam có cấu trúc cứng (Chương, Điều, Khoản), thuật ngữ chuẩn hóa cao,
+và hệ quả sai lệch lớn nếu dẫn nhầm số Điều.
+
+Hai hướng lớn:
+
+\begin{itemize}
+    \item \textbf{Close-book:} mô hình trả lời từ tham số đã huấn luyện. Nhanh,
+    nhưng không chỉ được trang luật nào, và dễ bịa khi luật đổi.
+    \item \textbf{Open-book / retrieve-then-read:} tìm đoạn liên quan rồi đọc
+    (hoặc sinh) câu trả lời~\cite{karpukhin2020dpr, lewis2020rag}. Đồ án theo
+    hướng này.
+\end{itemize}
+
+\section{Cấu trúc văn bản quy phạm pháp luật Việt Nam}
+
+\subsection{Luật, nghị định, thông tư không nằm trên một trang}
+
+Câu ``công ty mười hai lao động khai GTGT theo tháng hay theo quý'' không nằm
+gọn trong một Điều của Luật Quản lý thuế. Luật nói nghĩa vụ kê khai tồn tại.
+Nghị định nói ngưỡng và kỳ. Thông tư nói tờ khai. Nếu corpus chỉ có luật, máy
+trả lời đúng nguyên tắc và sai thao tác --- kiểu sai khó phát hiện vì nghe ``có
+vẻ đúng luật''. Vì vậy em lấy cả ba cấp vào kho~\cite{qlthue2019, quochoi2017,
+bll2019}.
+
+\subsection{Điều là đơn vị cắt dữ liệu}
+
+Văn bản chia Phần -- Chương -- Mục -- Điều -- Khoản -- Điểm. Em cắt theo
+\textbf{Điều} vì ba lý do thực dụng:
+
+\begin{enumerate}
+    \item Giới hành nghề dẫn chiếu theo Điều, không theo đoạn 400 ký tự thứ $n$.
+    \item Một Điều thường đủ nghĩa để đứng trong prompt; cắt giữa câu làm mất
+    chủ ngữ của khoản.
+    \item Độ dài trung bình khoảng hơn một nghìn ký tự --- nhét được vài Điều
+    vào ngữ cảnh mà chưa đầy.
+\end{enumerate}
+
+Cắt cả văn bản thành một vector thì vô dụng. Cắt theo số ký tự cố định thì đúng
+bài NLP chung nhưng hỏng dẫn chiếu pháp lý.
+
+\subsection{Viện dẫn chéo}
+
+Corpus gốc có trường \texttt{extra}: danh sách chỗ một Điều trỏ sang Điều khác.
+Em không xây đồ thị tri thức đủ chuẩn trong đồ án (không đủ thời gian). Em lưu
+và hiện thành liên kết trên trang đọc. Người đang xem Điều 44 Luật Quản lý thuế
+thấy đường sang Điều nói thời hạn nộp --- lúc demo, người không học luật dùng
+chỗ ``nhảy'' này nhiều hơn ô chat.
+
+\section{Truy hồi thưa: BM25}
+
+BM25 chấm tài liệu theo tần số từ của câu hỏi, có phạt tài liệu dài và hạ điểm
+từ xuất hiện khắp nơi~\cite{robertson2009bm25}:
+
+\begin{equation}
+\label{eq:bm25}
+\mathrm{BM25}(Q, D) = \sum_{t \in Q} \mathrm{IDF}(t) \cdot
+\frac{f(t, D) \cdot (k_1 + 1)}
+     {f(t, D) + k_1 \cdot \left(1 - b + b \cdot \dfrac{|D|}{\mathrm{avgdl}}\right)}
+\end{equation}
+
+\begin{equation}
+\label{eq:idf}
+\mathrm{IDF}(t) = \ln\left(\frac{N - n(t) + 0.5}{n(t) + 0.5} + 1\right)
+\end{equation}
+
+Trong đồ án: $k_1 = 1{,}2$, $b = 0{,}65$. Em không tối ưu lưới tham số cho đẹp
+bảng; hơi giảm $b$ vì Điều luật dao động độ dài.
+
+\textbf{Chỗ BM25 cứu hệ thống:} người dùng gõ ``59/2020/QH14'' hoặc ``Điều 23''.
+Vector dễ coi hai số Điều gần nhau là gần nghĩa; BM25 khớp mặt chữ.
+
+\textbf{Chỗ BM25 chịu thua:} ``sa thải'' không xuất hiện trong Điều nói đơn
+phương chấm dứt --- điểm bằng không.
+
+Tiếng Việt không tách từ bằng khoảng trắng. Em dùng \texttt{underthesea} khi
+có, fallback regex nếu thư viện không nạp được. Chính vì \texttt{underthesea}
+mà backend ghim Python 3.10.
+
+\section{Truy hồi dày: embedding và cosine}
+
+Mỗi Điều được nhúng thành vector. Độ gần đo bằng cosine:
+
+\begin{equation}
+\label{eq:cosine}
+\mathrm{sim}(q, d) = \frac{\mathbf{v}_q \cdot \mathbf{v}_d}
+                          {\lVert \mathbf{v}_q \rVert \, \lVert \mathbf{v}_d \rVert}
+\end{equation}
+
+Sản phẩm dùng \texttt{gemini-embedding-001}, cắt còn 1536 chiều (Matryoshka:
+giữ đầu vector) cho nhẹ chỉ mục. Đổi mô hình nhúng là đổi số chiều --- bắt buộc
+xóa Chroma và nhúng lại. Em ghi rõ trong cấu hình để khỏi quên.
+
+\section{Gộp hạng: Reciprocal Rank Fusion}
+
+Điểm BM25 và cosine không cùng thước. Cộng thẳng là tự bịa. RRF bỏ điểm, chỉ
+giữ thứ tự~\cite{cormack2009rrf}:
+
+\begin{equation}
+\label{eq:rrf}
+\mathrm{RRF}(d) = \sum_{i} \frac{w_i}{k + \mathrm{rank}_i(d)}
+\end{equation}
+
+Em lấy $k = 60$, $w_{\mathrm{dense}} = 3$, $w_{\mathrm{BM25}} = 1$. Thiên về
+vector vì đa số câu DNNVV là câu hỏi nghĩa; BM25 vẫn kéo truy vấn kiểu ``Điều
+35''. Tỉ lệ 3:1 chọn sau vài vòng thử tay, không phải tối ưu lưới có bài báo.
+
+\section{RAG, HyDE và rủi ro bịa nguồn}
+
+\subsection{RAG}
+
+Mô hình không được phép ``nhớ luật'' làm nguồn chính. Máy chủ tìm vài Điều, nhét
+vào prompt, yêu cầu viết từ đó~\cite{lewis2020rag}. Lợi ngay: có chỗ dẫn; đổi
+luật thì nhập văn bản, không huấn luyện lại; so được danh sách số Điều trong câu
+trả lời với danh sách vừa tìm.
+
+Ba rủi ro em gặp khi chạy thử:
+
+\begin{itemize}
+    \item Máy viết thêm khoản ``thường thì doanh nghiệp nên\ldots'' không có
+    trong ngữ cảnh.
+    \item Câu đúng nhưng dẫn nhầm Điều --- người dùng thấy có căn cứ nên tin.
+    \item Đưa quá nhiều Điều, mô hình lạc. Vì vậy có \texttt{llm\_filter}.
+    Reranker cross-encoder tắt vì Gemini không có cổng rerank.
+\end{itemize}
+
+\subsection{HyDE}
+
+Câu hỏi ngắn, văn luật dài và khác giọng. HyDE~\cite{gao2023hyde} nhờ mô hình
+viết một đoạn ``như thể đã trả lời'', rồi lấy đoạn đó đi tìm vector. Đoạn giả
+có thể sai nội dung nhưng thường gần giọng luật hơn câu hỏi gốc. Cấu hình đang
+bật HyDE, tắt viết lại nhiều biến thể --- làm cả hai tốn thời gian và hạn mức.
+
+\section{Chỉ số đánh giá retrieval: vì sao F2}
+
+\begin{equation}
+\label{eq:fbeta}
+F_\beta = (1 + \beta^2) \cdot \frac{P \cdot R}{\beta^2 P + R},\qquad \beta = 2
+\end{equation}
+
+Lấy thừa một Điều, bước lọc sau còn có cơ hội bỏ. Bỏ sót Điều quyết định thì
+không bước nào cứu. Cuộc thi ưu tiên độ phủ; đồ án giữ cùng hướng cho nhất quán,
+dù sản phẩm không nộp bài thi và \textbf{không lấy F2 cuộc thi làm kết quả}.
+
+Exact Match quá chặt cho câu trả lời sinh tự do. ROUGE hữu ích khi có vàng chuẩn
+câu chữ; đồ án chưa gắn nhãn bộ câu nội bộ đủ lớn nên không báo ROUGE giả.
+
+\section{Word embedding và đặc thù tiếng Việt (nhìn từ chỗ cài)}
+
+Trong RAG, embedding không phải để ``hiểu luật'' theo nghĩa luật học, mà để xếp
+các Điều gần nghĩa với câu hỏi (hoặc với đoạn HyDE) vào top-$k$. Với tiếng Việt,
+ba điểm em chú ý khi chọn và cấu hình:
+
+\begin{enumerate}
+    \item \textbf{Tách từ trước BM25.} Không tách thì ``lao động'' và ``lao''
+    ``động'' thành nhiễu. \texttt{underthesea} xử lý được phần lớn; chỗ fail thì
+    fallback regex --- chấp nhận giảm chất lượng hơn là crash startup.
+    \item \textbf{Dấu thanh.} Vector thường chịu được thiếu dấu tốt hơn BM25.
+    Ngược lại, FTS Postgres của em chủ động bỏ dấu để khớp cách gõ thực tế.
+    \item \textbf{Số chiều và hạn mức.} 3072 chiều đầy đủ của Gemini embedding
+    nặng chỉ mục và đắt hơn khi gọi API. Cắt 1536 chiều là thỏa hiệp: nhẹ một
+    nửa, đủ dùng trên corpus \soDieu{} Điều.
+\end{enumerate}
+
+\section{Prompt engineering trong đồ án}
+
+Em không fine-tune mô hình. Mọi hành vi điều khiển bằng prompt hệ thống và prompt
+từng nút:
+
+\begin{itemize}
+    \item Intent: chỉ được trả \texttt{NEXT} hoặc \texttt{SKIP}.
+    \item HyDE: viết 5--6 câu giọng luật, không kết luận mức phạt bịa.
+    \item Filter: chỉ trả lời có hoặc không với từng Điều ứng viên.
+    \item Generate: chỉ kết luận từ căn cứ đang có; thiếu thì nói thiếu; mặc định
+    chủ thể là DNNVV trừ khi người dùng nói khác.
+\end{itemize}
+
+Few-shot nằm trong prompt rewrite (ví dụ sa thải / thuế GTGT hộ kinh doanh) nhưng
+nhánh rewrite đang tắt trên sản phẩm để giữ latency. Nếu bật lại, phải đo thêm
+hạn mức.
+
+\section{Full-text search tiếng Việt trên PostgreSQL}
+
+PostgreSQL không có từ điển FTS tiếng Việt sẵn như tiếng Anh.
+Chiến lược đồ án~\cite{postgresqlfts}:
+
+\begin{enumerate}
+    \item Bỏ dấu bằng \texttt{unaccent}, cấu hình \texttt{simple}.
+    \item Vì \texttt{unaccent} chỉ \texttt{STABLE}, phải bọc
+    \texttt{immutable\_unaccent} mới tạo được cột generated \texttt{tsvector}.
+    \item Ba tầng: lọc theo số Điều; \texttt{ts\_rank}; \texttt{pg\_trgm} ngưỡng
+    0,3 khi không có hit.
+    \item Không dùng \texttt{ts\_headline} để bôi đậm --- hàm chạy trên cột mất
+    dấu. Backend trả token; React bôi trên chữ gốc.
+\end{enumerate}
+
+\section{Công nghệ hiện thực và lý do chọn}
+
+\begin{table}[htp]
+\centering
+\caption{Công nghệ gắn vào sản phẩm.}
+\label{tab:cong-nghe}
+\begin{tabular}{p{3.4cm}p{3.8cm}p{6.6cm}}
+\toprule
+\textbf{Thứ dùng} & \textbf{Nhóm} & \textbf{Việc trong đồ án} \\
+\midrule
+React 19, TypeScript & Giao diện & SPA sau đăng nhập \\
+Vite + nginx & Đóng gói FE & Dev proxy / production proxy \texttt{/api} \\
+Tailwind CSS 4 & Trang trí & Không kéo bộ component nặng \\
+TanStack Query & Cache client & Luật, poll soát xét \\
+Zustand & Phiên & User + khôi phục token \\
+FastAPI & Máy chủ & REST + SSE bất đồng bộ \\
+SQLAlchemy 2 + Alembic & ORM / migration & Schema phiên bản hóa \\
+PostgreSQL 17 & CSDL & Nghiệp vụ + FTS \\
+ChromaDB & Vector & Cosine trên Điều \\
+LangGraph & Điều phối & Bảy nút pipeline \\
+slowapi & Rate limit & Bảo vệ hạn mức mô hình \\
+Docker Compose & Cụm & Postgres, backend, frontend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{FastAPI.} Phần lớn thời gian request là chờ mạng. SSE có sẵn. OpenAPI sinh
+từ Pydantic --- lúc demo đưa \texttt{/docs}.
+
+\textbf{SPA, không Next.js.} Code thi đấu từng là Next.js. Em đổi vì đề bài yêu
+cầu React và vì app nằm sau đăng nhập, không cần SSR cho SEO. Đọc SSE bằng Fetch
+(không \texttt{EventSource}: không POST, không gắn Bearer).
+
+\textbf{Postgres + Chroma + BM25 RAM.} Quan hệ và giao dịch --- Postgres. Vector
+--- Chroma. BM25 dựng trong RAM, cache theo dấu vân tay tokenizer để startup
+không tách lại \soDieu{} Điều mỗi lần.
+
+\textbf{LangGraph.} Bảy bước, có nhánh thoát, mỗi bước bắn tiến độ SSE.
+
+\textbf{argon2 + JWT ngắn hạn.} Không có Redis cho session server-side. Access
+15 phút, refresh 7 ngày, phân biệt bằng field \texttt{type}.
+
+\textbf{SSE thay WebSocket.} Hỏi đáp một chiều. SSE đi trên HTTP, nginx proxy dễ.
+
+\section{Bảng tổng kết: vai trò -- thách thức -- hướng xử lý}
+
+Cách trình bày dưới đây học theo cấu trúc khóa luận mẫu (vai trò / thách thức /
+giải pháp), nhưng nội dung là của đồ án pháp lý DNNVV.
+
+\begin{table}[htp]
+\centering
+\caption{Tổng kết khối truy hồi hybrid.}
+\label{tab:tong-ket-retrieval}
+\begin{tabular}{p{2.2cm}p{11.5cm}}
+\toprule
+\textbf{Hạng mục} & \textbf{Nội dung} \\
+\midrule
+Vai trò & Đưa đúng tập Điều liên quan vào prompt trước khi sinh câu. \\
+Thách thức & Lệch từ vựng người--luật; số hiệu dễ bị vector ``làm tròn''; hạn
+mức nhúng. \\
+Hướng xử lý & BM25 + Chroma + RRF 3:1; HyDE; batch embedding 64 kèm backoff;
+cache BM25. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htp]
+\centering
+\caption{Tổng kết khối sinh câu và hậu kiểm trích dẫn.}
+\label{tab:tong-ket-generate}
+\begin{tabular}{p{2.2cm}p{11.5cm}}
+\toprule
+\textbf{Hạng mục} & \textbf{Nội dung} \\
+\midrule
+Vai trò & Viết câu tiếng Việt có thể đối chiếu được với Điều gốc. \\
+Thách thức & Mô hình bịa số Điều; diễn giải sai trên Điều đúng; đốt hạn mức. \\
+Hướng xử lý & Prompt siết căn cứ; \texttt{llm\_filter}; gỡ citation ngoài tập
+truy hồi; nhiệt độ 0; thiếu key thì 503 chứ không sập cụm. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htp]
+\centering
+\caption{Tổng kết khối nghiệp vụ DNNVV (hợp đồng + lịch).}
+\label{tab:tong-ket-sme}
+\begin{tabular}{p{2.2cm}p{11.5cm}}
+\toprule
+\textbf{Hạng mục} & \textbf{Nội dung} \\
+\midrule
+Vai trò & Biến RAG thành việc kế toán/nhân sự làm hàng tuần, không chỉ chat. \\
+Thách thức & PDF ảnh; hạn chót luật đổi; cách ly dữ liệu nhiều công ty. \\
+Hướng xử lý & Cắt điều khoản + reuse retrieval; \soRule{} rule có legal\_refs;
+cách ly theo organization/user; từ chối PDF không có lớp chữ lúc tải. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Việc người khác đã làm, em lấy gì}
+
+Em lấy ý RAG và dense retrieval~\cite{lewis2020rag, karpukhin2020dpr}; BM25 và
+RRF là công cụ~\cite{robertson2009bm25, cormack2009rrf}; HyDE để kéo giọng
+câu hỏi gần văn luật~\cite{gao2023hyde}. Bài chatbot tuyển sinh~\cite{duong2026}
+là mốc: hướng RAG chạy được trên dữ liệu hẹp tiếng Việt.
+
+Chỗ đồ án khác: kho có cấu trúc Điều--Chương, FTS không dấu vẫn hiện có dấu,
+lịch tuân thủ gắn Điều thật, tách sản phẩm Gemini khỏi bài thi mô hình mở. Phần
+hiện thực nằm ở Chương~3; phần đo trên máy em nằm ở Chương~4.

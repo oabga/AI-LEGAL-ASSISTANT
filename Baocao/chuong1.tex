@@ -1,0 +1,194 @@
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{Giới thiệu đề tài}
+
+\section{Tổng quan tình hình liên quan đến đề tài}
+
+Ở Việt Nam, doanh nghiệp nhỏ và vừa (DNNVV) phải tự đối mặt với một khối lượng
+văn bản quy phạm khá dày: thuế, lao động, bảo hiểm, kế toán, hợp đồng thương mại,
+sở hữu trí tuệ ở mức đăng ký nhãn hiệu. Cổng thông tin văn bản quy phạm pháp luật
+nhà nước mở và đáng tin, nhưng cách vào cổng đó giả định người hỏi đã biết số
+hiệu hoặc ít nhất biết thuật ngữ pháp lý đúng. Thực tế kế toán hoặc chủ cửa hàng
+thường gõ câu nói thường ngày: ``thử việc được bao lâu'', ``chậm đóng BHXH phạt
+thế nào'', ``quý này nộp GTGT ngày nào''. Kết quả tìm theo từ khóa lúc thì quá
+rộng, lúc thì trượt vì luật viết ``đơn phương chấm dứt hợp đồng lao động'' chứ
+không viết ``sa thải''.
+
+Song song đó, các chatbot ngôn ngữ lớn trả lời tiếng Việt rất trôi. Em thử nhiều
+câu hỏi thật của một công ty thương mại khoảng mười hai người. Máy trả lời tự
+tin, đôi khi còn nêu số Điều. Khi đối chiếu văn bản gốc, có lần số Điều không
+tồn tại, có lần nội dung bị trộn từ nghị định khác. Với nghĩa vụ có phạt hành
+chính, một câu sai mà nghe chắc chắn còn nguy hiểm hơn là không có câu trả lời.
+
+Trên hướng kỹ thuật, kiến trúc truy hồi-rồi-sinh (RAG)~\cite{lewis2020rag} đã
+được dùng rộng rãi để buộc mô hình nhìn vào ngữ cảnh đã tìm trước khi viết.
+Các công trình về dense retrieval~\cite{karpukhin2020dpr}, BM25, Reciprocal Rank
+Fusion~\cite{cormack2009rrf} và HyDE~\cite{gao2023hyde} cung cấp đủ ``gạch'' để
+ghép một pipeline hỏi đáp trên corpus hẹp. Ở môi trường tiếng Việt trong trường,
+bài chatbot tuyển sinh dùng RAG~\cite{duong2026} cho thấy hướng này chạy được
+khi kho tri thức có biên rõ. Em không làm lại thí nghiệm của các bài đó; em lấy
+ý rồi áp vào kho luật DNNVV có cấu trúc Điều--Chương.
+
+Có một nhánh riêng: pipeline truy hồi pháp lý từng dùng trong cuộc thi hỏi đáp
+tiếng Việt (mô hình mở, ràng buộc tham số). Đồ án \textbf{không nộp lại bài thi}.
+Em kế thừa lõi cắt theo Điều và hybrid BM25--vector, rồi viết thành ứng dụng web
+có đăng nhập, lịch sử hội thoại, tra cứu, soát hợp đồng và lịch tuân thủ. Sản
+phẩm mặc định gọi Gemini qua lớp tương thích OpenAI --- khác hẳn ràng buộc mô
+hình mở của cuộc thi --- nên số F2 trên leaderboard không được đem gắn vào kết
+quả đồ án.
+
+\section{Lý do lựa chọn đề tài}
+
+\subsection{Về phía người dùng}
+
+Doanh nghiệp nhỏ ít khi thuê được pháp chế riêng, nhưng nghĩa vụ không thu hẹp
+theo quy mô. Khai thuế GTGT, tạm nộp và quyết toán TNDN, đóng BHXH, báo cáo tình
+hình sử dụng lao động, nộp báo cáo tài chính năm --- các mốc này lặp lại, có hạn
+chót, và chậm là có chế tài. Một công cụ nhắc việc kèm chỗ dẫn luật, theo em,
+hữu ích hơn một chatbot chỉ khuyên chung ``doanh nghiệp cần tuân thủ pháp luật''.
+
+Em cố tình không kéo đề tài sang tố tụng, hình sự hay đất đai chuyên sâu. Làm
+hẹp để làm xong và kiểm chứng được. Phạm vi DNNVV đã đủ lớn cho một đồ án ngành.
+
+\subsection{Về phía kỹ thuật}
+
+Ba chỗ không sao chép được từ hướng dẫn ``cài chatbot có sẵn'':
+
+\begin{enumerate}
+    \item \textbf{Lệch từ vựng.} Người dùng nói ``sa thải''; luật viết ``đơn
+    phương chấm dứt''. Chỉ BM25 thì trượt; chỉ vector thì đôi khi bắt nhầm Điều
+    kề nhau. Phải hybrid rồi gộp hạng.
+    \item \textbf{Tiếng Việt trên PostgreSQL.} Không có từ điển FTS tiếng Việt
+    chuẩn. Người dùng hay gõ không dấu. Nếu bỏ dấu rồi vừa tìm vừa hiện, đoạn
+    trích mất dấu --- không đọc được. Phải tách tìm (bản không dấu) và hiện (bản
+    còn dấu, bôi đậm phía client).
+    \item \textbf{Bịa số Điều.} Nếu chỉ tin đầu ra mô hình, đồ án không khác
+    chatbot kia. Em thêm hậu kiểm: số Điều nêu trong câu trả lời phải nằm trong
+    tập vừa truy hồi; không thì gỡ khỏi danh sách căn cứ hiện ra.
+\end{enumerate}
+
+\section{Mục tiêu đề tài}
+
+\subsection{Mục tiêu tổng quát}
+
+Xây dựng một ứng dụng web chạy được, nhiều người dùng, nhiều doanh nghiệp, trong
+đó phần pháp lý đưa ra đều lần ra được văn bản gốc trong một corpus đã chốt.
+
+\subsection{Mục tiêu cụ thể}
+
+\begin{enumerate}
+    \item Gom và chuẩn hóa corpus DNNVV: \soLuat{} văn bản, \soDieu{} Điều,
+    \soChuong{} chương; cắt theo Điều; giữ metadata và viện dẫn chéo.
+    \item Cài pipeline hỏi đáp bảy bước: phân tích ý định, chuẩn bị truy vấn
+    (HyDE), truy hồi lai, lọc LLM, sinh câu, hậu kiểm trích dẫn; stream SSE.
+    \item Trang tra cứu: cây Chương--Điều, tìm không dấu, nút hỏi tiếp về Điều
+    đang đọc.
+    \item Soát xét hợp đồng PDF/DOCX/TXT, chạy nền, poll trạng thái, bảng rủi ro.
+    \item Lịch tuân thủ \soRule{} loại nghĩa vụ, sinh theo hồ sơ công ty, kèm
+    \texttt{legal\_refs}.
+    \item Đăng nhập JWT (access + refresh), bốn vai trò, cách ly dữ liệu.
+    \item Docker Compose ba dịch vụ và bộ test tự động \soTest{} test.
+\end{enumerate}
+
+Mục tiêu em \textbf{cố ý không nhận}: đạt điểm F2 cao nhất trên bảng xếp hạng
+cuộc thi với đúng mô hình mở. Lý do đã nêu ở mục tổng quan.
+
+\section{Cách tiếp cận và phương pháp}
+
+\subsection{Open-book QA thay vì close-book QA}
+
+Close-book QA nhờ mô hình ``nhớ'' kiến thức trong tham số. Với luật Việt Nam hay
+sửa và hay bịa số Điều, close-book không phù hợp. Em chọn open-book: mọi kết luận
+pháp lý phải dựa trên đoạn văn đã truy hồi từ corpus~\cite{lewis2020rag}. Nếu
+không tìm ra Điều liên quan, hệ thống phải nói thiếu căn cứ, không được viết đoạn
+khuyên chung giả danh luật.
+
+\subsection{Hybrid retrieval}
+
+Dense retrieval bắt nghĩa; BM25 bắt mặt chữ và số hiệu. Reciprocal Rank Fusion
+gộp hai bảng xếp hạng mà không cần chuẩn hóa điểm về cùng thang~\cite{cormack2009rrf}.
+Trong cấu hình đồ án, trọng số dense:BM25 = 3:1, $k_{\mathrm{RRF}}=60$, lấy top
+$k=8$ Điều đưa vào các bước sau.
+
+\subsection{Phát triển sản phẩm theo vòng ngắn}
+
+Em không viết hết tài liệu thiết kế rồi mới mở editor. Thứ tự thực tế: chốt
+corpus $\rightarrow$ Postgres và bảng tri thức $\rightarrow$ tài khoản và hội
+thoại $\rightarrow$ tra cứu $\rightarrow$ hợp đồng $\rightarrow$ lịch tuân thủ.
+Mỗi mảng xong API thì làm giao diện ngay, vì nhiều lỗi chỉ lộ khi bấm tay (định
+tuyến số hiệu có dấu \texttt{/}, thứ tự tin nhắn cùng \texttt{created\_at},
+FormData bị Axios gắn JSON).
+
+Kiểm thử backend chạy trên PostgreSQL thật (database tạm
+\texttt{legal\_assistant\_test}), không phải SQLite, vì FTS phụ thuộc
+\texttt{tsvector}, \texttt{unaccent}, \texttt{pg\_trgm}.
+
+\section{Đối tượng và phạm vi}
+
+\subsection{Đối tượng}
+
+\begin{itemize}
+    \item Người dùng: chủ DNNVV, kế toán, nhân sự --- hỏi và tra cứu tiếng Việt
+    thường ngày.
+    \item Đối tượng kỹ thuật: pipeline hybrid RAG trên corpus VBQPPL cắt theo
+    Điều; ứng dụng web đa người dùng.
+\end{itemize}
+
+\subsection{Phạm vi chức năng}
+
+Bốn nghiệp vụ: hỏi đáp có trích dẫn, tra cứu cây văn bản, soát xét hợp đồng, lịch
+tuân thủ. Không OCR file scan, không nộp thuế hộ, không ký số, không đại diện tố
+tụng. Lịch tuân thủ là lịch nhắc, không phải phần mềm kế toán.
+
+\subsection{Phạm vi dữ liệu và kỹ thuật}
+
+Corpus \soLuat{} văn bản thuộc thuế, lao động, BHXH, kế toán, hợp đồng, SHTT mức
+cơ bản, hỗ trợ DNNVV. Không có luật hình sự, không văn bản địa phương. Mô hình và
+embedding gọi qua mạng (Gemini); không tự host GPU. Soát xét hợp đồng dùng
+\texttt{BackgroundTasks} của FastAPI --- đủ quy mô đồ án, chưa phải hàng đợi
+phân tán.
+
+\section{So sánh nhanh với công cụ sẵn có}
+
+\begin{table}[htp]
+\centering
+\caption{Ba kiểu công cụ em đối chiếu trước khi chốt hướng.}
+\label{tab:khao-sat}
+\begin{tabular}{p{2.8cm}p{3.6cm}p{3.6cm}p{3.8cm}}
+\toprule
+\textbf{Tiêu chí} & \textbf{Cổng VBQPPL} & \textbf{Chatbot không nguồn} &
+\textbf{Hướng đồ án} \\
+\midrule
+Cách hỏi & Số hiệu, từ khóa & Câu nói thường & Câu thường hoặc từ cây văn bản \\
+Đối chiếu & Chính là file luật & Không có chỗ bấm & Mỗi căn cứ mở đúng Điều \\
+Bịa số Điều & Không xảy ra & Dễ gặp & Gỡ căn cứ ngoài tập truy hồi \\
+Việc kế toán/NS & Không & Không & Soát hợp đồng, lịch nộp \\
+Độ rộng kho & Rất rộng & Không rõ nguồn & \soLuat{} văn bản, cố ý hẹp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cổng nhà nước thắng độ tin cậy và độ phủ. Chatbot thắng cách hỏi. Đồ án không
+cạnh tranh độ phủ; chỗ Em nhắm là ghép cách hỏi tự nhiên với kho hẹp mở được từng
+Điều, cộng hai việc cổng văn bản không làm: đọc hộ hợp đồng và nhắc mốc nộp.
+
+\section{Phần em nhận là đóng góp}
+
+Em không nhận đóng góp thuật toán mới. Ở mức đồ án ngành, ba thứ em nhận là của
+mình vì chúng không có sẵn trong pipeline thi đấu:
+
+\begin{itemize}
+    \item Ứng dụng nhiều người, nhiều công ty, đăng nhập và cách ly dữ liệu ---
+    không còn là script hỏi đáp một lần.
+    \item Tra cứu tiếng Việt không dấu trên Postgres mà đoạn trích vẫn còn dấu;
+    lịch tuân thủ sinh theo hồ sơ từng công ty và dẫn Điều có trong corpus.
+    \item Hệ thống vẫn sống khi thiếu khóa mô hình: tra cứu và lịch dùng được;
+    chỉ hỏi đáp / soát xét báo chưa sẵn sàng.
+\end{itemize}
+
+\section{Bố cục báo cáo}
+
+Chương~2 trình bày cơ sở lý thuyết và lý do chọn công nghệ. Chương~3 phân tích
+yêu cầu, thiết kế và hiện thực. Chương~4 mô tả thử nghiệm, kiểm thử và đánh giá
+trên máy làm đồ án. Chương~5 kết luận, hạn chế và hướng phát triển.

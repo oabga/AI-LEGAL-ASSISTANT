@@ -1,0 +1,244 @@
+% !TEX program = xelatex
+% !TeX TS-program = xelatex
+% File này dùng fontspec (Times / TeX Gyre Termes) nên PHẢI biên dịch bằng
+% XeLaTeX, không dùng pdfLaTeX. Ctrl+Alt+B sẽ đọc dòng !TEX ở trên.
+
+\documentclass[12pt,a4paper]{report}
+
+% ============================================================
+% 1. FONT VÀ TIẾNG VIỆT - NÊN BIÊN DỊCH BẰNG XeLaTeX
+% ============================================================
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+
+% Ưu tiên Times New Roman nếu máy có.
+% Nếu không có Times New Roman thì dùng TeX Gyre Termes (font gần giống Times).
+% Nếu cũng không có thì dùng Latin Modern Roman.
+\defaultfontfeatures{Mapping=tex-text}
+\IfFontExistsTF{Times New Roman}{%
+  \setmainfont{Times New Roman}%
+}{%
+  \IfFontExistsTF{TeX Gyre Termes}{%
+    \setmainfont{TeX Gyre Termes}%
+  }{%
+    \setmainfont{Latin Modern Roman}%
+  }%
+}
+
+% ============================================================
+% 2. ĐỊNH DẠNG TRANG, GIÃN DÒNG, THỤT ĐẦU DÒNG
+% ============================================================
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{indentfirst}
+
+\onehalfspacing
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{0pt}
+
+% ============================================================
+% 3. CÁC GÓI HỖ TRỢ HÌNH ẢNH, BẢNG, CHÚ THÍCH, LIÊN KẾT
+% ============================================================
+% Không dùng [demo] — chế độ đó vẽ hình đen đặc.
+\usepackage{graphicx}
+\graphicspath{{images/}}
+
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{underscore}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,shadows,shapes.multipart}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+
+% Caption của bảng nằm phía trên bảng.
+% Caption của hình nằm phía dưới hình.
+\captionsetup[table]{
+  position=above,
+  skip=6pt,
+  justification=centering,
+  labelfont=bf,
+  font=small
+}
+
+\captionsetup[figure]{
+  position=below,
+  skip=6pt,
+  justification=centering,
+  labelfont=bf,
+  font=small
+}
+
+% ============================================================
+% 4. ĐÁNH SỐ CÔNG THỨC, HÌNH, BẢNG THEO CHƯƠNG
+% Ví dụ: Hình 2.1, Bảng 3.2, Công thức (2.1)
+% ============================================================
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+% ============================================================
+% 5. TÊN CÁC PHẦN BẰNG TIẾNG VIỆT
+% ============================================================
+\AtBeginDocument{%
+  \renewcommand{\chaptername}{Chương}
+  \renewcommand{\contentsname}{MỤC LỤC}
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}
+  \renewcommand{\listtablename}{DANH MỤC BẢNG}
+  \renewcommand{\bibname}{TÀI LIỆU THAM KHẢO}
+  \renewcommand{\figurename}{Hình}
+  \renewcommand{\tablename}{Bảng}
+}
+
+% ============================================================
+% 6. ĐỊNH DẠNG CHƯƠNG, MỤC, MỤC LỤC
+% ============================================================
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+% Chương hiển thị dạng:
+% Chương 1. TỔNG QUAN ĐỀ TÀI
+\titleformat{\chapter}[block]
+  {\normalfont\Large\bfseries\centering}
+  {\chaptertitlename\ \thechapter.}{0.5em}{\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+
+% Section, subsection, subsubsection
+\titleformat{\section}
+  {\normalfont\bfseries}
+  {\thesection}{0.6em}{}
+
+\titleformat{\subsection}
+  {\normalfont\bfseries}
+  {\thesubsection}{0.6em}{}
+
+\titleformat{\subsubsection}
+  {\normalfont\bfseries\itshape}
+  {\thesubsubsection}{0.6em}{}
+
+% Thêm dấu chấm trong mục lục cho cấp chapter
+\renewcommand{\cftchapdotsep}{\cftdotsep}
+\renewcommand{\cftchapfont}{\normalsize\bfseries}
+
+% ============================================================
+% 7. THÔNG TIN CÁ NHÂN - THAY PHẦN NÀY
+% ============================================================
+\newcommand{\tenSV}{Lê Gia Bảo}
+\newcommand{\maSV}{<MSSV>}
+\newcommand{\tenDoAn}{XÂY DỰNG HỆ THỐNG TRỢ LÝ PHÁP LÝ AI CHO DOANH NGHIỆP NHỎ VÀ VỪA}
+\newcommand{\tenNganh}{CÔNG NGHỆ THÔNG TIN}
+\newcommand{\namBaoCao}{2026}
+\newcommand{\gvhd}{ThS. Dương Hữu Thành}
+
+% Số liệu về corpus và bộ kiểm thử. Khai báo một chỗ để mọi chương dùng chung,
+% cập nhật ở đây khi corpus thay đổi.
+\newcommand{\soLuat}{38}
+\newcommand{\soDieu}{3.844}
+\newcommand{\soChuong}{452}
+\newcommand{\soRule}{12}
+\newcommand{\soTest}{77}
+
+\input{hinh-macros}
+
+\begin{document}
+
+% Không đánh số trang ở hai trang bìa
+\pagenumbering{gobble}
+
+% ============================================================
+% TRANG BÌA 1
+% ============================================================
+\begin{titlepage}
+\centering
+
+{\bfseries BỘ GIÁO DỤC VÀ ĐÀO TẠO\par}
+\vspace{0.3cm}
+{\bfseries TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH\par}
+
+\vspace{3cm}
+
+{\large\bfseries \tenSV\par}
+
+\vspace{1cm}
+
+{\Large\bfseries \tenDoAn\par}
+
+\vspace{1.5cm}
+
+{\huge\bfseries ĐỒ ÁN NGÀNH\par}
+
+\vspace{0.8cm}
+
+{\large\bfseries NGÀNH \tenNganh\par}
+
+\vfill
+
+{\bfseries TP. HỒ CHÍ MINH, \namBaoCao\par}
+
+\end{titlepage}
+
+\clearpage
+
+% ============================================================
+% TRANG BÌA 2
+% ============================================================
+\begin{titlepage}
+\centering
+
+{\bfseries BỘ GIÁO DỤC VÀ ĐÀO TẠO\par}
+\vspace{0.3cm}
+{\bfseries TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH\par}
+
+
+\vspace{2.2cm}
+
+{\large\bfseries \tenSV\par}
+
+\vspace{0.5cm}
+
+{\Large\bfseries \tenDoAn\par}
+
+\vspace{0.8cm}
+
+{\large Mã số sinh viên: \maSV\par}
+
+\vspace{1.2cm}
+
+{\huge\bfseries ĐỒ ÁN NGÀNH\par}
+
+\vspace{0.8cm}
+
+{\large\bfseries NGÀNH \tenNganh\par}
+
+\vspace{1.2cm}
+
+{\large Giảng viên hướng dẫn: \gvhd\par}
+
+\vfill
+
+{\bfseries TP. HỒ CHÍ MINH, \namBaoCao\par}
+
+\end{titlepage}
+
+\clearpage
+
+% Bắt đầu đánh số La Mã cho phần đầu báo cáo
+\pagenumbering{Roman}
+\setcounter{page}{1}
+\pagestyle{plain}
+
+\input{noidung}
+
+
+\end{document}
