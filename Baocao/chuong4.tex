@@ -1,0 +1,226 @@
+\chapter{Thử nghiệm và đánh giá}
+
+Chương này ghi lại những gì em đo và chạy trên máy làm đồ án. Em không đưa bảng
+F2 của cuộc thi vào đây như kết quả sản phẩm --- lý do nói rõ ở cuối chương.
+
+\section{Môi trường thử nghiệm}
+
+\begin{table}[htp]
+\centering
+\caption{Cấu hình máy và cụm khi chạy thử.}
+\label{tab:moi-truong}
+\begin{tabular}{p{4.0cm}p{9.8cm}}
+\toprule
+\textbf{Thành phần} & \textbf{Giá trị} \\
+\midrule
+Host & WSL2, Linux \\
+Điều phối & Docker Compose, mạng cầu \texttt{legal} \\
+PostgreSQL & 17-alpine, cổng host 23432 \\
+Backend & Python 3.10, FastAPI, cổng 8023 \\
+Frontend & nginx phục vụ bản Vite, cổng 5173 \\
+LLM & \texttt{gemini-2.5-flash}, temperature 0 \\
+Embedding & \texttt{gemini-embedding-001}, 1536 chiều \\
+Corpus & \soLuat{} văn bản, \soDieu{} Điều \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Một phần thử nghiệm cố ý chạy \textbf{không} gắn khóa API để chứng minh suy giảm
+có kiểm soát. Phần hỏi đáp có trích dẫn và soát xét hợp đồng cần khóa; khi hết
+hạn mức phải ra lỗi rõ, không stack trace.
+
+\section{Kiểm thử tự động}
+
+\subsection{Tổ chức bộ test}
+
+Tổng \soTest{} test: 53 backend (\texttt{pytest}) + 24 frontend (\texttt{vitest}).
+Backend không chạy trên SQLite. Fixture tạo database
+\texttt{legal\_assistant\_test}, chạy migration Alembic, hết phiên thì xóa. Em
+làm vậy vì FTS, \texttt{unaccent} và ràng buộc unique (công ty, rule, kỳ) không
+giả được bằng mock cho ra cảm giác ``đã test''.
+
+\subsection{Các case viết vì từng vỡ tay}
+
+\begin{itemize}
+    \item Hai tài khoản: hội thoại của A, B gọi GET bằng id đó --- phải 404
+    (không 403).
+    \item Đăng ký công ty khai quý / khai tháng --- tập task tuân thủ khác nhau.
+    \item Tìm ``thue gtgt'' không dấu --- có hit, strategy \texttt{full\_text}.
+    \item Tải \texttt{.txt} --- HTTP 201, status \texttt{ready}.
+    \item Backend không có index vector --- chat stream 503, \texttt{/health}
+    vẫn 200.
+    \item Hook SSE: server chỉ gửi \texttt{token} không gửi \texttt{result} ---
+    không được treo vĩnh viễn.
+\end{itemize}
+
+Frontend test không bật trình duyệt thật; chúng kiểm vòng parse sự kiện. Test
+xanh không chứng minh giao diện đẹp --- chỉ chứng minh parser không gãy.
+
+\section{Chạy tay trên cụm Docker}
+
+\begin{table}[htp]
+\centering
+\caption{Kết quả smoke test trên cụm Docker em ghi lại.}
+\label{tab:ket-qua-test}
+\begin{tabular}{p{4.4cm}p{2.8cm}p{6.6cm}}
+\toprule
+\textbf{Nhóm} & \textbf{Kết quả} & \textbf{Ý nghĩa} \\
+\midrule
+\texttt{pytest} & 53 passed & Schema, FTS, cách ly, upload \\
+\texttt{vitest} & 24 passed & Parser SSE chịu thiếu event \\
+\texttt{GET /laws} & 38 văn bản & Catalog khớp manifest \\
+Tìm ``thue gtgt'' & 73 hit & Bỏ dấu hoạt động \\
+Đăng ký DN 12 người, GTGT quý & 39 task & Có ATVSLĐ, không VAT tháng \\
+Hỏi đáp không khóa / chưa index & HTTP 503 & Suy giảm có kiểm soát \\
+Tải \texttt{hd.txt} & 201, ready & Trích chữ lúc tải \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ba lệnh tối thiểu: copy \texttt{.env} ở thư mục gốc (không phải
+\texttt{backend/.env}), \texttt{docker compose up -d --build}, nạp corpus bằng
+\texttt{load\_postgres.py}.
+
+\section{Kịch bản hỏi đáp chạy tay}
+
+\subsection{Câu trong phạm vi corpus}
+
+Câu demo: ``Công ty mười hai người, nhân viên kinh doanh, thử việc được phép
+bao lâu?''
+
+\begin{itemize}
+    \item BM25 bắt cụm ``thử việc'' trong Bộ luật Lao động.
+    \item Vector kéo thêm vài Điều về hợp đồng xác định thời hạn vì gần nghĩa.
+    \item \texttt{llm\_filter} thường bỏ Điều về hợp đồng mùa vụ.
+    \item Câu trả lời nêu Điều 25: thời gian thử việc theo loại công việc, không
+    phải một con số 60 ngày cho mọi vị trí.
+    \item Citation bấm ra đúng Điều trong kho.
+\end{itemize}
+
+\subsection{Câu không phải pháp luật}
+
+``Hôm nay ăn gì.'' Nút \texttt{analyze\_intent} trả SKIP, không tốn truy hồi.
+Nếu không có nút này, pipeline đôi khi kéo Điều về an toàn thực phẩm --- dễ làm
+người xem tưởng hệ thống loạn.
+
+\subsection{Câu ngoài corpus}
+
+``Thủ tục ly hôn khi vợ chồng đều ở nước ngoài.'' Kho không có luật hôn nhân
+gia đình. Đầu ra phải nói không đủ căn cứ. Nếu mô hình vẫn viết đoạn khuyên
+chung, danh sách citation sau hậu kiểm phải rỗng.
+
+\section{Đánh giá module tra cứu và lịch tuân thủ}
+
+\begin{table}[htp]
+\centering
+\caption{Đối chiếu hồ sơ doanh nghiệp và task được sinh.}
+\label{tab:danh-gia-lich}
+\begin{tabular}{p{4.5cm}p{4.0cm}p{5.2cm}}
+\toprule
+\textbf{Hồ sơ} & \textbf{Quan sát} & \textbf{Kết luận} \\
+\midrule
+12 NLĐ, GTGT quý & 39 task; có ATVSLĐ; không VAT tháng & Lọc \texttt{applies\_to}
+đúng \\
+3 NLĐ, GTGT tháng & Có VAT tháng; không ATVSLĐ & Ngưỡng 10 người hoạt động \\
+Đổi quý $\rightarrow$ tháng rồi sinh lại & Task cũ đã tick không mất & Unique
+(công ty, rule, kỳ) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ô tìm không dấu ``thue gtgt'' trả 73 dòng; chữ trên trang vẫn còn dấu nhờ bôi
+đậm phía client. Đây là chỗ em coi là đạt so với mục tiêu YC-05.
+
+\section{Đánh giá giao diện (định tính)}
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=0.88\linewidth]{man-hinh-chat.png}
+\caption{Bố cục trang hỏi đáp: cột hội thoại, vết pipeline, câu trả lời và citation.}
+\label{fig:man-hinh-chat}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=0.88\linewidth]{man-hinh-tra-cuu.png}
+\caption{Bố cục trang tra cứu: cây Chương--Điều và tìm không dấu.}
+\label{fig:man-hinh-tra-cuu}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=0.88\linewidth]{man-hinh-hop-dong.png}
+\caption{Bố cục trang hợp đồng: upload và bảng rủi ro.}
+\label{fig:man-hinh-hop-dong}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=0.88\linewidth]{man-hinh-lich.png}
+\caption{Bố cục trang lịch tuân thủ: ô đếm và nhóm theo tháng.}
+\label{fig:man-hinh-lich}
+\end{figure}
+
+Em tự dùng và nhờ bạn học không chuyên luật bấm thử. Phản hồi chung: cột vết
+pipeline giúp chờ đỡ sốt; nút ``Hỏi AI về Điều này'' trên trang luật được dùng
+nhiều; trên màn hẹp thanh hội thoại còn chật --- ghi vào hạn chế.
+
+\section{Biểu đồ tóm tắt bộ kiểm thử}
+
+\begin{figure}[htp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  symbolic x coords={Backend pytest, Frontend vitest, Tổng},
+  xtick=data,
+  nodes near coords,
+  ymin=0, ymax=90,
+  ylabel={Số test passed},
+  width=0.85\linewidth,
+  height=6.5cm,
+  bar width=18pt,
+  grid=major,
+  grid style={dashed, gray!40}
+]
+\addplot[fill=blue!40] coordinates {(Backend pytest,53) (Frontend vitest,24) (Tổng,77)};
+\end{axis}
+\end{tikzpicture}
+\caption{Phân bố số test tự động đạt trên máy làm đồ án.}
+\label{fig:bieu-do-test}
+\end{figure}
+
+\section{Vì sao không có cột F2 cuộc thi trong báo cáo}
+
+Pipeline truy hồi gốc sinh trong cuộc thi hỏi đáp pháp lý, chấm F2 trên bộ câu
+và corpus khóa. Sản phẩm đồ án đổi embedding (Gemini, 1536 chiều), đổi LLM
+(Gemini Flash), tắt reranker cục bộ, bật HyDE. Đổi một trong các thứ đó là đổi
+bài toán. Gắn số F2 bài thi vào chương này như kết quả đồ án là không trung thực.
+
+Lab \texttt{/api/v1/lab/competition} vẫn nhận JSON và trả đúng khuôn cũ để người
+có máy cục bộ Qwen tự chạy. Nếu làm tiếp: cùng corpus, cùng bộ vài trăm câu nội
+bộ, hai cột Qwen và Gemini, một bảng P/R/F2 --- lúc đó mới bàn ``đổi nhà cung
+cấp thì truy hồi thay đổi thế nào''.
+
+\section{Đối chiếu mục tiêu Chương 1}
+
+\begin{table}[htp]
+\centering
+\caption{Đối chiếu bảy mục tiêu cụ thể với bằng chứng.}
+\label{tab:doi-chieu-mt}
+\begin{tabular}{p{0.8cm}p{5.5cm}p{7.5cm}}
+\toprule
+\textbf{MT} & \textbf{Nội dung rút gọn} & \textbf{Bằng chứng} \\
+\midrule
+1 & Corpus cắt theo Điều & \soDieu{} bản ghi, manifest \soLuat{} luật \\
+2 & Pipeline 7 bước + SSE & Code LangGraph + test SSE \\
+3 & Tra cứu cây + không dấu & 73 hit ``thue gtgt'' \\
+4 & Soát xét hợp đồng nền & Upload 201, poll status \\
+5 & Lịch \soRule{} rule & 39 task với hồ sơ mẫu \\
+6 & JWT + cách ly & Test 404 chéo hội thoại \\
+7 & Docker + test & Compose 3 dịch vụ, \soTest{} test \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Mục tiêu em không nhận (F2 leaderboard mô hình mở) vẫn không nhận ở đây.

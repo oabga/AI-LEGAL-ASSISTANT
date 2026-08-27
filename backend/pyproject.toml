@@ -1,0 +1,68 @@
+[project]
+name = "legal-assistant-backend"
+version = "1.0.0"
+description = "FastAPI + LangGraph backend cho trợ lý pháp lý AI dành cho SME Việt Nam"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # Web / API
+    "fastapi==0.128.1",
+    "uvicorn[standard]==0.40.0",
+    "python-multipart>=0.0.20,<1",
+    "httpx>=0.28.1,<1",
+    # Config
+    "pydantic==2.12.5",
+    "pydantic-settings==2.12.0",
+    "pydantic[email]==2.12.5",
+    "pyyaml==6.0.3",
+    # Database
+    "asyncpg==0.31.0",
+    "sqlalchemy[asyncio]>=2.0.36,<3",
+    "alembic>=1.14,<2",
+    "greenlet>=3.1,<4",
+    # Auth
+    "passlib>=1.7.4,<2",
+    "argon2-cffi>=23.1,<26",
+    "python-jose[cryptography]>=3.3,<4",
+    # Rate limiting
+    "slowapi>=0.1.9,<1",
+    # RAG
+    "langchain-core==1.2.8",
+    "langchain-openai==1.1.7",
+    "langgraph==1.0.7",
+    "chromadb==1.5.9",
+    "rank-bm25==0.2.2",
+    "underthesea==9.2.11",
+    # Trích xuất text hợp đồng
+    "pypdf>=5.1,<7",
+    "python-docx>=1.1.2,<2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0,<9",
+    "pytest-asyncio>=1.0,<2",
+    "aiosqlite>=0.20,<1",
+    "ruff>=0.12,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# Toàn bộ test dùng chung một event loop: connection pool của asyncpg gắn với
+# loop tạo ra nó, nên mỗi test một loop sẽ khiến engine cache dùng lại connection
+# của loop đã đóng.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]

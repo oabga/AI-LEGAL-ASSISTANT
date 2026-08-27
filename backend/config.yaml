@@ -1,0 +1,126 @@
+# Cấu hình hành vi ứng dụng. Secret KHÔNG đặt ở đây - xem backend/.env.example.
+# Biến môi trường ghi đè file này (bảng map trong src/config.py: ENV_OVERRIDES).
+
+app:
+  host: 0.0.0.0
+  port: 8023
+
+ui:
+  host: 0.0.0.0
+  port: 5173
+
+cors:
+  # Để trống thì tự suy ra http://localhost:{ui.port}.
+  # Production set qua CORS_ALLOW_ORIGINS="https://ten-mien-that".
+  allow_origins: []
+  allow_credentials: true
+
+auth:
+  algorithm: HS256
+  access_token_minutes: 15
+  refresh_token_days: 7
+  min_password_length: 8
+  # Tài khoản đăng ký đầu tiên trở thành admin khi bảng users còn trống.
+  bootstrap_first_admin: true
+
+rate_limit:
+  enabled: true
+  chat_per_minute: 20
+  upload_per_hour: 30
+
+uploads:
+  directory: ./uploads
+  max_size_mb: 10
+  allowed_extensions: [".pdf", ".docx", ".txt"]
+
+llm:
+  # Lớp tương thích OpenAI của Gemini. Đổi base_url để chuyển sang vLLM local
+  # hoặc provider khác mà không phải sửa code.
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  default_model: gemini-2.5-flash
+  temperature: 0.0
+  max_tokens: 4096
+  enable_thinking: false
+  timeout_seconds: 120
+  max_retries: 4
+
+embeddings:
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  model: gemini-embedding-001
+  # Matryoshka truncation: giảm 3072 -> 1536 chiều để index nhẹ đi một nửa.
+  # ĐỔI GIÁ TRỊ NÀY BẮT BUỘC PHẢI XÓA chroma_db/ VÀ INDEX LẠI.
+  dimensions: 1536
+  max_input_tokens: 8000
+  tokenizer_encoding: cl100k_base
+  # Provider cloud có rate limit, index theo batch nhỏ kèm exponential backoff.
+  batch_size: 64
+  max_retries: 6
+  retry_base_delay: 2.0
+  retry_max_delay: 60.0
+  request_timeout: 120
+
+short_memory:
+  enabled: true
+  # Số lượt hỏi-đáp gần nhất nạp lại từ PostgreSQL vào ngữ cảnh.
+  max_turns: 6
+
+legal_assistant:
+  chat:
+    streaming: true # true: UI gọi /chat/stream; false: UI gọi /chat
+    token_streaming: true # true: stream token LLM trong bubble chat
+  competition:
+    enabled: false # true: bỏ qua Intent và chạy trực tiếp legal RAG cho tập test
+    max_concurrency: 4
+    save_outputs: true
+    output_dir: ./outputs
+  rewrite:
+    enabled: false
+    max_variants: 3
+  hyde:
+    enabled: true
+  reranker:
+    # Gemini không có endpoint rerank; bù lại bằng llm_filter phía dưới.
+    enabled: false
+    base_url: http://localhost:8025
+    model: qwen3-reranker-06b
+    endpoint: /v1/rerank
+    filter_mode: largest_gap
+    threshold: 0.5
+    min_gap: 0.0
+    min_keep: 1
+    timeout_seconds: 60
+  llm_filter:
+    enabled: true # LLM loại context nhiễu sau retrieval
+    max_concurrency: 3
+    min_keep: 2
+  corpus:
+    # Path tương đối được neo vào thư mục backend/, nên trong container (WORKDIR
+    # /app) hai file này nằm ở /corpus và /data — khớp với mount trong compose.
+    manifest_path: ../corpus/law_manifest.json
+    data_path: ../data/base_data.json
+  contract_review:
+    enabled: true
+    max_clauses: 60
+    max_concurrency: 3
+    retrieval_top_k: 4
+  postgres:
+    enabled: true
+    # Ghi đè bằng LEGAL_DATABASE_URL (compose dùng service name "postgres").
+    database_url: postgresql://postgres:postgres@localhost:23432/legal_assistant
+    table_name: legal_knowledge_records
+    batch_size: 256
+    pool_size: 10
+    max_overflow: 10
+    echo_sql: false
+  vector_store:
+    mode: hybrid # bm25 | chroma | hybrid
+    top_k: 8
+    persist_directory: ./chroma_db
+    default_collection: legal_articles
+    rrf_k: 60
+    dense_weight: 3.0
+    bm25_weight: 1.0
+    bm25_tokenizer: auto
+    bm25_k1: 1.2
+    bm25_b: 0.65
+    bm25_epsilon: 0.25

@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* Bảng màu dark kế thừa từ UI Next.js cũ, đưa vào Tailwind theme để dùng
+   trực tiếp qua class (bg-surface, text-muted, ...). */
+@theme {
+  --color-canvas: #08080a;
+  --color-sidebar: #0c0c0f;
+  --color-surface: #17181b;
+  --color-surface-2: #202124;
+  --color-surface-3: #2f3033;
+  --color-line: #2a2b30;
+  --color-line-soft: #1c1c20;
+  --color-ink: #f4f4f5;
+  --color-muted: #a8a8ad;
+  --color-muted-2: #7e7f87;
+
+  --color-brand: #4f8cff;
+  --color-brand-soft: #1d2a44;
+
+  --color-ok: #89e39f;
+  --color-ok-bg: #15351f;
+  --color-warn: #f0cf7b;
+  --color-warn-bg: #3a3016;
+  --color-danger: #ff9b9b;
+  --color-danger-bg: #401b1b;
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-bubble: 22px;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2c2d33;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3b43;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Nội dung markdown do LLM sinh ra. */
+@utility prose-legal {
+  line-height: 1.65;
+
+  & p {
+    margin: 0 0 0.85em;
+  }
+  & p:last-child {
+    margin-bottom: 0;
+  }
+  & ul,
+  & ol {
+    margin: 0 0 0.85em;
+    padding-left: 1.35em;
+  }
+  & li {
+    margin: 0.25em 0;
+  }
+  & h1,
+  & h2,
+  & h3,
+  & h4 {
+    margin: 1.2em 0 0.5em;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+  & h1 {
+    font-size: 1.3em;
+  }
+  & h2 {
+    font-size: 1.18em;
+  }
+  & h3 {
+    font-size: 1.06em;
+  }
+  & strong {
+    color: #fff;
+    font-weight: 650;
+  }
+  & a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  & code {
+    background: var(--color-surface-2);
+    border-radius: 5px;
+    padding: 0.1em 0.36em;
+    font-size: 0.9em;
+  }
+  & pre {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 0 0 0.85em;
+  }
+  & pre code {
+    background: transparent;
+    padding: 0;
+  }
+  & blockquote {
+    margin: 0 0 0.85em;
+    padding-left: 0.9em;
+    border-left: 3px solid var(--color-line);
+    color: var(--color-muted);
+  }
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 0.85em;
+    font-size: 0.94em;
+  }
+  & th,
+  & td {
+    border: 1px solid var(--color-line);
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  & th {
+    background: var(--color-surface-2);
+    font-weight: 600;
+  }
+}
+
+@keyframes trace-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.06);
+  }
+}
+
+@utility animate-trace-pulse {
+  animation: trace-pulse 1.2s ease-in-out infinite;
+}

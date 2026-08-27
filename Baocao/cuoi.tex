@@ -1,0 +1,131 @@
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
+\begin{thebibliography}{99}
+
+\bibitem{thanh2024}
+Dương Hữu Thành, \textit{Công nghệ phần mềm}, NXB Thông tin và Truyền thông, 2024.
+
+\bibitem{duong2026}
+H. T. Duong, T. P. Bui, D. H. Nguyen, ``QLoRA and RAG Application in Building
+Admissions Support Chatbot: Performance Evaluation and Knowledge Update
+Ability,'' in N. N. Dao, V. Truong Hoang, F. Dornaika (eds.),
+\textit{Explainable Intelligence in Digital Twins}, EIDT 2025, LNEE vol.~1531,
+Springer, Singapore, 2026.
+
+\bibitem{lewis2020rag}
+P. Lewis, E. Perez, A. Piktus \textit{et al.}, ``Retrieval-Augmented Generation
+for Knowledge-Intensive NLP Tasks,'' \textit{NeurIPS}, vol.~33, pp.~9459--9474,
+2020.
+
+\bibitem{karpukhin2020dpr}
+V. Karpukhin, B. Oğuz, S. Min \textit{et al.}, ``Dense Passage Retrieval for
+Open-Domain Question Answering,'' \textit{Proc. EMNLP}, pp.~6769--6781, 2020.
+
+\bibitem{robertson2009bm25}
+S. Robertson, H. Zaragoza, ``The Probabilistic Relevance Framework: BM25 and
+Beyond,'' \textit{Foundations and Trends in Information Retrieval}, vol.~3,
+no.~4, pp.~333--389, 2009.
+
+\bibitem{cormack2009rrf}
+G. V. Cormack, C. L. A. Clarke, S. Buettcher, ``Reciprocal Rank Fusion
+Outperforms Condorcet and Individual Rank Learning Methods,'' \textit{Proc.
+SIGIR}, pp.~758--759, 2009.
+
+\bibitem{gao2023hyde}
+L. Gao, X. Ma, J. Lin, J. Callan, ``Precise Zero-Shot Dense Retrieval without
+Relevance Labels,'' \textit{Proc. ACL}, pp.~1762--1777, 2023.
+
+\bibitem{quochoi2017}
+Quốc hội, \textit{Luật Hỗ trợ doanh nghiệp nhỏ và vừa}, số 04/2017/QH14.
+
+\bibitem{bll2019}
+Quốc hội, \textit{Bộ luật Lao động}, số 45/2019/QH14.
+
+\bibitem{qlthue2019}
+Quốc hội, \textit{Luật Quản lý thuế}, số 38/2019/QH14.
+
+\bibitem{postgresqlfts}
+PostgreSQL Global Development Group, ``Full Text Search,'' tài liệu trực tuyến,
+\url{https://www.postgresql.org/docs/current/textsearch.html}.
+
+\end{thebibliography}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{PHỤ LỤC}
+\chapter*{PHỤ LỤC}
+
+\section*{Phụ lục A. Chạy hệ thống trên máy}
+
+Sao \texttt{.env.example} thành \texttt{.env} \textbf{ở thư mục gốc dự án},
+không phải trong \texttt{backend/}. Compose không đọc \texttt{backend/.env}.
+Điền \texttt{LLM\_API\_KEY} (trang AI Studio của Google) và
+\texttt{JWT\_SECRET\_KEY} (ví dụ \texttt{openssl rand -hex 32}). Chạy:
+
+\texttt{docker compose up -d --build}
+
+Lần đầu nạp luật:
+
+\texttt{docker compose exec backend python scripts/load\_postgres.py}
+\texttt{--truncate}
+
+Rồi restart backend. Vào \texttt{http://localhost:5173}. Tài khoản đăng ký đầu
+tiên thành quản trị. Tra cứu dùng được ngay. Hỏi đáp cần đã nhúng vector: vào
+\texttt{/admin/corpus} bấm reindex, hoặc đợi startup nếu khóa đã có từ đầu.
+
+Thiếu khóa: web vẫn mở, hỏi đáp trả 503 chữ tiếng Việt, không phải stack trace.
+
+\section*{Phụ lục B. Chạy test}
+
+Backend (cần Postgres đang mở cổng 23432):
+
+\texttt{cd backend \&\& uv run pytest}
+
+Frontend:
+
+\texttt{cd frontend \&\& npm test}
+
+Tổng \soTest{} test. Database test tên \texttt{legal\_assistant\_test}, tạo và
+xóa trong phiên pytest, không đụng dữ liệu demo.
+
+\section*{Phụ lục C. Một số đường API}
+
+\begin{longtable}{p{6.6cm}p{7.2cm}}
+\toprule
+\textbf{Đường} & \textbf{Việc} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Đường} & \textbf{Việc} \\
+\midrule
+\endhead
+\texttt{POST /api/v1/auth/register} & Tạo user, có thể kèm organization \\
+\texttt{POST /api/v1/auth/login} & Cấp access + refresh \\
+\texttt{POST /api/v1/auth/refresh} & Đổi access, kiểm tra \texttt{type} \\
+\texttt{GET /api/v1/conversations} & Danh sách hội thoại của đúng user \\
+\texttt{POST /api/v1/legal/chat/stream} & SSE hỏi đáp \\
+\texttt{GET /api/v1/laws} & Catalog \\
+\texttt{GET /api/v1/laws/search} & FTS \\
+\texttt{GET /api/v1/laws/\{id\}/articles} & Cây Chương--Điều \\
+\texttt{POST /api/v1/documents} & Tải file \\
+\texttt{POST /api/v1/documents/\{id\}/review} & 202, chạy nền \\
+\texttt{GET /api/v1/compliance/tasks} & Lịch \\
+\texttt{POST /api/v1/admin/corpus/reindex} & Nhúng lại, chỉ admin \\
+\texttt{POST /api/v1/lab/competition} & Bộ câu hỏi, chỉ admin \\
+\bottomrule
+\end{longtable}
+
+\section*{Phụ lục D. Lab thi đấu}
+
+\texttt{POST /api/v1/lab/competition} nhận JSON danh sách câu, trả file kết quả
+đúng khuôn cũ. Dùng khi cần số liệu với mô hình mở. Sản phẩm mặc định trên
+Docker không bật competition mode cho user thường.
+
+\section*{Phụ lục E. Ghi chú biên dịch báo cáo}
+
+File \texttt{main.tex} phải chạy XeLaTeX (gói \texttt{fontspec}). Trong Cursor
+hoặc VS Code, biên dịch bằng recipe xelatex (hoặc \texttt{latexmk -xelatex}).
+Đầu file có chỉ thị TEX program trỏ sang xelatex. Ảnh minh họa đang để chế độ
+demo của \texttt{graphicx}; khi có file trong thư mục \texttt{Baocao/images/}
+thì bỏ tùy chọn demo trên lệnh nạp gói.

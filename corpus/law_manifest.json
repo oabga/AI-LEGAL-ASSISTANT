@@ -1,0 +1,272 @@
+[
+  {
+    "law_id": "04/2017/QH14",
+    "law_name": "Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Hỗ trợ DNNVV"
+  },
+  {
+    "law_id": "80/2021/NĐ-CP",
+    "law_name": "Nghị định Quy định chi tiết và hướng dẫn thi hành một số điều của Luật Hỗ trợ doanh nghiệp nhỏ và vừa",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Hỗ trợ DNNVV"
+  },
+  {
+    "law_id": "59/2020/QH14",
+    "law_name": "Luật Doanh nghiệp",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Doanh nghiệp"
+  },
+  {
+    "law_id": "01/2021/NĐ-CP",
+    "law_name": "Nghị định về đăng ký doanh nghiệp",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Doanh nghiệp"
+  },
+  {
+    "law_id": "122/2021/NĐ-CP",
+    "law_name": "Nghị định Quy định về xử phạt vi phạm hành chính trong lĩnh vực kế hoạch và đầu tư",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Doanh nghiệp"
+  },
+  {
+    "law_id": "38/2019/QH14",
+    "law_name": "Luật Quản lý thuế",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế",
+    "source_document_number": "29/VBHN-VPQH",
+    "source_doc_type": "Văn bản hợp nhất",
+    "source_document_id": 651534,
+    "source_note": "Mirror chỉ có bản dịch tiếng Anh cho 38/2019/QH14. Dùng văn bản hợp nhất 29/VBHN-VPQH ngày 26/02/2025 vì giữ nguyên cách đánh số Điều của luật gốc. Phải ghim theo document id vì số hiệu VBHN được dùng lại mỗi năm."
+  },
+  {
+    "law_id": "108/2025/QH15",
+    "law_name": "Luật Quản lý thuế",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "126/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định chi tiết một số điều của Luật Quản lý thuế",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "123/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định về hóa đơn, chứng từ",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "78/2021/TT-BTC",
+    "law_name": "Thông tư Hướng dẫn thực hiện một số điều của Luật Quản lý thuế ngày 13 tháng 6 năm 2019, Nghị định số 123/2020/NĐ-CP ngày 19 tháng 10 năm 2020 của Chính phủ quy định về hóa đơn, chứng từ",
+    "doc_type": "Thông tư",
+    "author": "Bộ Tài chính",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "132/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định về quản lý thuế đối với doanh nghiệp có giao dịch liên kết",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "139/2016/NĐ-CP",
+    "law_name": "Nghị định Quy định về lệ phí môn bài",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "13/2008/QH12",
+    "law_name": "Luật Thuế giá trị gia tăng",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "48/2024/QH15",
+    "law_name": "Luật Thuế giá trị gia tăng",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "14/2008/QH12",
+    "law_name": "Luật Thuế thu nhập doanh nghiệp",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "67/2025/QH15",
+    "law_name": "Luật Thuế thu nhập doanh nghiệp",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "04/2007/QH12",
+    "law_name": "Luật Thuế thu nhập cá nhân",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Thuế"
+  },
+  {
+    "law_id": "45/2019/QH14",
+    "law_name": "Bộ luật Lao động",
+    "doc_type": "Bộ luật",
+    "author": "Quốc hội",
+    "category": "Lao động"
+  },
+  {
+    "law_id": "145/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định chi tiết và hướng dẫn thi hành một số điều của Bộ luật Lao động về điều kiện lao động và quan hệ lao động",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Lao động"
+  },
+  {
+    "law_id": "12/2022/NĐ-CP",
+    "law_name": "Nghị định Quy định xử phạt vi phạm hành chính trong lĩnh vực lao động, bảo hiểm xã hội, người lao động Việt Nam đi làm việc ở nước ngoài theo hợp đồng",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Lao động"
+  },
+  {
+    "law_id": "152/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định về người lao động nước ngoài làm việc tại Việt Nam và tuyển dụng, quản lý người lao động Việt Nam làm việc cho tổ chức, cá nhân nước ngoài tại Việt Nam",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Lao động"
+  },
+  {
+    "law_id": "41/2024/QH15",
+    "law_name": "Luật Bảo hiểm xã hội",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Bảo hiểm xã hội"
+  },
+  {
+    "law_id": "58/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định về mức đóng bảo hiểm xã hội bắt buộc vào Quỹ bảo hiểm tai nạn lao động, bệnh nghề nghiệp",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Bảo hiểm xã hội"
+  },
+  {
+    "law_id": "84/2015/QH13",
+    "law_name": "Luật An toàn, vệ sinh lao động",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "An toàn lao động"
+  },
+  {
+    "law_id": "44/2016/NĐ-CP",
+    "law_name": "Nghị định Quy định chi tiết một số điều của Luật An toàn, vệ sinh lao động về hoạt động kiểm định kỹ thuật an toàn lao động, huấn luyện an toàn, vệ sinh lao động và quan trắc môi trường lao động",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "An toàn lao động"
+  },
+  {
+    "law_id": "50/2005/QH11",
+    "law_name": "Luật Sở hữu trí tuệ",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Sở hữu trí tuệ"
+  },
+  {
+    "law_id": "36/2009/QH12",
+    "law_name": "Luật sửa đổi, bổ sung một số điều của Luật Sở hữu trí tuệ",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Sở hữu trí tuệ"
+  },
+  {
+    "law_id": "07/2022/QH15",
+    "law_name": "Luật sửa đổi, bổ sung một số điều của Luật Sở hữu trí tuệ",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Sở hữu trí tuệ"
+  },
+  {
+    "law_id": "65/2023/NĐ-CP",
+    "law_name": "Nghị định Quy định chi tiết một số điều và biện pháp thi hành Luật Sở hữu trí tuệ về sở hữu công nghiệp, bảo vệ quyền sở hữu công nghiệp, quyền đối với giống cây trồng và quản lý nhà nước về sở hữu trí tuệ",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Sở hữu trí tuệ"
+  },
+  {
+    "law_id": "91/2015/QH13",
+    "law_name": "Bộ luật Dân sự",
+    "doc_type": "Bộ luật",
+    "author": "Quốc hội",
+    "category": "Dân sự - Hợp đồng"
+  },
+  {
+    "law_id": "36/2005/QH11",
+    "law_name": "Luật Thương mại",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Dân sự - Hợp đồng"
+  },
+  {
+    "law_id": "54/2010/QH12",
+    "law_name": "Luật Trọng tài thương mại",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Dân sự - Hợp đồng"
+  },
+  {
+    "law_id": "88/2015/QH13",
+    "law_name": "Luật Kế toán",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Kế toán - Tài chính"
+  },
+  {
+    "law_id": "133/2016/TT-BTC",
+    "law_name": "Thông tư Hướng dẫn Chế độ kế toán doanh nghiệp nhỏ và vừa",
+    "doc_type": "Thông tư",
+    "author": "Bộ Tài chính",
+    "category": "Kế toán - Tài chính"
+  },
+  {
+    "law_id": "200/2014/TT-BTC",
+    "law_name": "Thông tư Hướng dẫn Chế độ kế toán doanh nghiệp",
+    "doc_type": "Thông tư",
+    "author": "Bộ Tài chính",
+    "category": "Kế toán - Tài chính"
+  },
+  {
+    "law_id": "19/2023/QH15",
+    "law_name": "Luật Bảo vệ quyền lợi người tiêu dùng",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Bảo vệ người tiêu dùng"
+  },
+  {
+    "law_id": "98/2020/NĐ-CP",
+    "law_name": "Nghị định Quy định xử phạt vi phạm hành chính trong hoạt động thương mại, sản xuất, buôn bán hàng giả, hàng cấm và bảo vệ quyền lợi người tiêu dùng",
+    "doc_type": "Nghị định",
+    "author": "Chính phủ",
+    "category": "Bảo vệ người tiêu dùng"
+  },
+  {
+    "law_id": "31/2024/QH15",
+    "law_name": "Luật Đất đai",
+    "doc_type": "Luật",
+    "author": "Quốc hội",
+    "category": "Đất đai"
+  }
+]

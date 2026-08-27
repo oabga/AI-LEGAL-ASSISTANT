@@ -1,0 +1,98 @@
+name: ai-legal-assistant
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-legal_assistant}
+    ports:
+      # Publish ra host để chạy Alembic/script từ máy dev.
+      - "${POSTGRES_PORT:-23432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-legal_assistant}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [legal]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Trong network bridge, PostgreSQL được gọi qua service name.
+      LEGAL_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-legal_assistant}
+      LLM_MODEL: ${LLM_MODEL:-gemini-2.5-flash}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-gemini-embedding-001}
+      # Backend log cảnh báo khi thiếu; không dùng ${VAR:?} vì nó làm mọi lệnh
+      # docker compose (kể cả "up postgres") fail ngay khi parse file.
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-}
+      # Frontend đi qua nginx cùng origin nên CORS chỉ cần cho dev server.
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173,http://localhost:${FRONTEND_PORT:-5173}}
+      APP_PORT: "8023"
+    ports:
+      - "${BACKEND_PORT:-8023}:8023"
+    volumes:
+      - ./backend/config.yaml:/app/config.yaml:ro
+      # Path corpus trong config neo vào backend/.. nên phải mount ở root.
+      - ./data:/data:ro
+      - ./corpus:/corpus:ro
+      - chroma_data:/app/chroma_db
+      - uploads_data:/app/uploads
+      - ./backend/outputs:/app/outputs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8023/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
+    networks: [legal]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Rỗng = SPA gọi đường dẫn tương đối (/api/v1/...); nginx trong container
+        # tự proxy sang backend nên không cần base URL tuyệt đối.
+        VITE_API_BASE_URL: ""
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [legal]
+
+volumes:
+  postgres_data:
+  chroma_data:
+  uploads_data:
+
+networks:
+  legal:
+    driver: bridge
