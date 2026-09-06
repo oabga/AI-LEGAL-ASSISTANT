@@ -104,7 +104,7 @@ ChatStreamEvent: TypeAlias = (
 
 
 class CompetitionRecord(BaseModel):
-    """Một dòng kết quả submit tối giản cho cuộc thi."""
+    """Một dòng kết quả khi chạy hàng loạt câu hỏi."""
 
     id: int | None = None
     question: str

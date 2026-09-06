@@ -29,7 +29,7 @@ uv run python scripts/load_postgres.py --truncate
 
 Dataset mặc định là `data/base_data.json`.
 
-## Competition mode
+## Chạy hàng loạt câu hỏi
 
 Trong `config.yaml`:
 
@@ -45,23 +45,14 @@ legal_assistant:
     output_dir: ./outputs
 ```
 
-`chat.streaming=true` là mode mặc định cho UI/chat client. Khi tắt, UI dùng
+`chat.streaming=true` là mode mặc định cho UI. Khi tắt, UI dùng
 endpoint `/api/v1/legal/chat` thay vì `/api/v1/legal/chat/stream`.
-`chat.token_streaming=true` cho phép node trả lời stream token-by-token qua SSE,
-nên người dùng thấy câu trả lời xuất hiện ngay trong bubble chat.
+`chat.token_streaming=true` cho phép node trả lời stream token qua SSE.
 
-Khi bật `true`, agent bỏ qua Intent và luôn chạy legal RAG. `max_concurrency` giới hạn số câu chạy song song; mặc định là 4. Endpoint nhận trực
-tiếp JSON array tập test:
+Khi chạy hàng loạt, agent bỏ qua phân tích ý định và luôn truy hồi pháp lý.
+`max_concurrency` giới hạn số câu chạy song song (mặc định 4).
 
-```text
-POST /api/v1/legal/competition          # trả JSON cuối
-POST /api/v1/legal/competition/stream   # stream tiến độ từng câu cho UI
-```
-
-Response trả array tối giản theo format submit: `id`, `question`, `answer`,
-`relevant_docs`, `relevant_articles`. Nếu `save_outputs=true`, backend tự lưu kết quả vào `backend/outputs/competition_<timestamp>_<status>.json` khi hoàn tất hoặc khi lỗi.
-
-Chạy không cần UI, phù hợp tmux:
+Chạy không cần UI:
 
 ```bash
 uv run python scripts/run_competition.py --file path/to/test.json

@@ -1,0 +1,92 @@
+\section{Chi tiết từng nút pipeline LangGraph}
+
+Mỗi nút đọc vài trường của \texttt{LegalAssistantState}, ghi vài trường, phát
+SSE \texttt{status}. Prompt gốc không trích toàn văn (dài, dễ lệch khi sửa mã).
+
+\subsection{Nút \texttt{analyze\_intent}}
+
+\boncau
+{Phân loại câu vào ô chat: cần tra luật hay trả lời ngắn.}
+{Tránh nhúng và gọi retrieve cho ``xin chào'', ``cảm ơn'', câu ngoài miền.}
+{LLM chỉ được in \texttt{NEXT} hoặc \texttt{SKIP}. Nhãn khác hoặc lỗi mạng
+$\rightarrow$ ép \texttt{NEXT} (thà tra thừa). Bộ nhớ ngắn đã gắn từ PostgreSQL
+trước khi gọi.}
+{Mọi lượt chat. Trang chạy hàng loạt luôn \texttt{NEXT} để không câu nào bị SKIP.}
+
+\subsection{Nút \texttt{prepare\_retrieval\_query}}
+
+\boncau
+{Tạo văn bản dùng để tìm: câu gốc, câu viết lại, hoặc đoạn HyDE.}
+{Câu người dùng ngắn, giọng đời thường; văn luật khác từ vựng.}
+{Sản phẩm: HyDE bật, rewrite tắt. Ưu tiên đoạn HyDE, rồi câu gốc. Lỗi một nhánh
+thì dùng nhánh còn lại. Intent SKIP thì không gọi LLM.}
+{Sau intent NEXT. Tắt/bật bằng \texttt{config.yaml}.}
+
+\subsection{Nút \texttt{retrieve}}
+
+\boncau
+{Gọi \texttt{search\_legal\_articles}: Chroma + BM25, gộp RRF, lấy $k=8$.}
+{Cần tập Điều cho filter và generate. Tìm đồng bộ chạy luồng phụ để heartbeat
+SSE không bị nghẽn.}
+{Lai, trọng số 3:1, $k_{\mathrm{RRF}}=60$. \texttt{search\_spaces} từ client chỉ
+giao registry đã nạp.}
+{Intent NEXT và registry sẵn. SKIP: danh sách rỗng. Ngoại lệ: retrieved rỗng,
+generate nói thiếu căn cứ --- không bịa từ tham số mô hình.}
+
+\subsection{Nút \texttt{rerank}}
+
+\boncau
+{Nút giữ chỗ cho xếp hạng chéo cặp (câu hỏi, Điều).}
+{Cross-encoder chính xác hơn cosine nhưng đắt; Gemini không có cổng rerank.}
+{Trên sản phẩm \textbf{tắt}: sao chép nguyên danh sách retrieve. Lỗi cũng
+fallback, không nuốt ứng viên.}
+{Chỉ khi tự host endpoint rerank và bật trong cấu hình.}
+
+\subsection{Nút \texttt{llm\_filter}}
+
+\boncau
+{Hỏi PASS/DROP từng Điều: ``có giúp trả lời câu hỏi không?''}
+{Thay rerank: giảm Điều lạc trước khi sinh câu.}
+{Gọi song song, semaphore \texttt{max\_concurrency}. Item lỗi mạng được giữ
+(PASS). Nếu PASS ít hơn \texttt{min\_keep} thì lấy thêm từ danh sách gốc.}
+{Bật trên sản phẩm sau retrieve. Không chạy khi retrieved rỗng.}
+
+\subsection{Nút \texttt{generate\_answer}}
+
+\boncau
+{Sinh câu tiếng Việt trên prompt hệ thống + Điều đã lọc + vài lượt gần nhất.}
+{Đây là chỗ người dùng đọc kết luận; nhiệt độ 0 để diễn giải ổn định.}
+{Tối đa 4096 token; stream SSE \texttt{token}. SKIP: không nhét Điều, không
+citation. Tập rỗng: nhắc thừa nhận thiếu nguồn. Hậu kiểm citation nằm kề API,
+không trong nút.}
+{Sau filter (hoặc sau retrieve nếu filter tắt).}
+
+\subsection{Nút \texttt{format\_submission}}
+
+\boncau
+{Gom \texttt{doc\_ref}, \texttt{article\_ref}, viện dẫn chéo đã lưu ở
+\texttt{extra}.}
+{UI cần danh sách căn cứ bấm được; lượt sau cần tin nhắn AI trong state.}
+{Không gọi LLM. Không truy hồi thêm.}
+{Luôn chạy cuối pipeline, kể cả nhánh SKIP (danh sách căn cứ rỗng).}
+
+Bảng~\ref{tab:bay-nut} là cấu hình sản phẩm tại thời điểm báo cáo.
+
+\begin{table}[htp]
+\centering
+\caption{Bảy nút LangGraph trên cấu hình sản phẩm.}
+\label{tab:bay-nut}
+\begin{tabular}{p{3.3cm}p{2.2cm}p{7.8cm}}
+\toprule
+\textbf{Nút} & \textbf{LLM?} & \textbf{Khi nào / ghi chú} \\
+\midrule
+\texttt{analyze\_intent} & Có & SKIP/NEXT; lỗi thì NEXT. \\
+\texttt{prepare\_retrieval\_query} & Có (HyDE) & Rewrite tắt; HyDE bật. \\
+\texttt{retrieve} & Nhúng câu hỏi & Hybrid RRF 3:1, $k=8$. \\
+\texttt{rerank} & Không (tắt) & Giữ nguyên retrieved. \\
+\texttt{llm\_filter} & Có & PASS/DROP; \texttt{min\_keep}. \\
+\texttt{generate\_answer} & Có & Nhiệt độ 0; stream token. \\
+\texttt{format\_submission} & Không & Chuẩn hoá ref, ghi memory. \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -15,8 +15,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { useAuthStore } from "@/store/auth";
 
-// Trang admin và lab chỉ dành cho một người trong cả hệ thống, tách khỏi bundle
-// chính để người dùng thường không phải tải về.
+// Trang admin chỉ dành cho quản trị, tách khỏi bundle chính.
 const AdminCorpusPage = lazy(() =>
   import("@/pages/AdminCorpusPage").then((module) => ({ default: module.AdminCorpusPage })),
 );
@@ -92,7 +91,7 @@ function AppRoutes() {
           >
             <Route path="/admin/corpus" element={<AdminCorpusPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
-            <Route path="/lab/competition" element={<LabCompetitionPage />} />
+            <Route path="/admin/batch-eval" element={<LabCompetitionPage />} />
           </Route>
         </Route>
       </Route>

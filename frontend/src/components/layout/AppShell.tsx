@@ -41,7 +41,7 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/corpus", label: "Kho văn bản", icon: Database, adminOnly: true },
       { to: "/admin/users", label: "Người dùng", icon: Users, adminOnly: true },
-      { to: "/lab/competition", label: "Lab thi đấu", icon: FlaskConical, adminOnly: true },
+      { to: "/admin/batch-eval", label: "Chạy hàng loạt", icon: FlaskConical, adminOnly: true },
     ],
   },
 ];

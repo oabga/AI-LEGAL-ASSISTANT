@@ -1,0 +1,66 @@
+\section{Thiết kế API, cấu hình và các khối hiện thực}
+
+\subsection{API theo tài nguyên}
+
+\boncau
+{REST dưới tiền tố \texttt{/api/v1}: \texttt{/auth}, \texttt{/conversations},
+\texttt{/legal/chat/stream}, \texttt{/laws}, \texttt{/documents},
+\texttt{/compliance}, \texttt{/admin}, \texttt{/health}.}
+{Tách tài nguyên khớp bốn nghiệp vụ; \texttt{v1} để sau này thêm phiên bản
+không phá client cũ.}
+{GET đọc, POST tạo, PATCH sửa, DELETE xóa. Lỗi JSON \texttt{detail}.
+\texttt{/health} không cần token.}
+{Mọi request nghiệp vụ. SSE chỉ trên \texttt{/legal/chat/stream}.}
+
+\subsection{Đăng ký và bootstrap quản trị}
+
+\boncau
+{Tài khoản đầu (bảng user trống, cờ \texttt{bootstrap\_first\_admin}) nhận
+admin; các tài khoản sau là \texttt{owner} nếu kèm tổ chức.}
+{Không nhúng cặp \texttt{admin/admin} trong image.}
+{Đăng ký có thể kèm MST, số lao động, kỳ GTGT; ngay sau đó sinh lịch.}
+{Chỉ lần đăng ký đầu trên CSDL trống. Các lần sau không tự phong admin.}
+
+\subsection{Cấu hình \texttt{config.yaml}}
+
+\boncau
+{File YAML mô tả hành vi pipeline và ngưỡng; không chứa bí mật.}
+{Đổi HyDE/rewrite/rerank/filter không sửa mã. Bí mật đi biến môi trường.}
+{Nhóm \texttt{llm}, \texttt{embeddings}, \texttt{legal\_assistant.*},
+\texttt{vector\_store} (hybrid, $k=8$, RRF 60, trọng số 3:1),
+\texttt{short\_memory.max\_turns=6}, \texttt{auth}, \texttt{rate\_limit},
+\texttt{uploads} (10~MB).}
+{Mỗi lần backend khởi động. Đổi chiều embedding: xóa volume Chroma rồi nhúng lại.}
+
+\subsection{Tách chữ và soát xét hợp đồng}
+
+\boncau
+{Trích chữ PDF (lớp văn bản), DOCX (XML), TXT (UTF-8); cắt theo tiêu đề điều
+khoản; mỗi khoản đi cùng hàm truy hồi rồi LLM gán mức rủi ro.}
+{Tái sử dụng retrieval: căn cứ hợp đồng cũng mở được Điều, cùng hàng rào với chat.
+Không huấn luyện mô hình phát hiện rủi ro riêng.}
+{Regex ``Điều $n$'', ``Article $n$'', dòng số. Gộp khoản $<80$ ký tự; cắt khoản
+$>6000$. Tối đa 60 khoản, 3 khoản song song. $k=4$ Điều mỗi khoản. Điểm 0--100
+từ trọng số cao/trung/thấp.}
+{Trích chữ lúc tải (201/\texttt{ready}). Soát xét lúc user bấm (202, nền). PDF
+ảnh: fail lúc tải, không đợi soát xét.}
+
+\subsection{Giao diện từng trang}
+
+\boncau
+{SPA: login/register, chat, luật, hợp đồng, lịch, hồ sơ, admin (corpus, user,
+chạy hàng loạt).}
+{Mỗi nghiệp vụ một nhóm route; citation là nút mở Điều, không phải footnote tĩnh.}
+{AppShell ẩn mục admin nếu không phải quản trị. Số hiệu có \texttt{/} dùng splat.}
+{Sau đăng nhập. Login/register khi chưa có phiên.}
+
+\subsection{Nhật ký và chiến lược lỗi}
+
+\boncau
+{\texttt{audit\_logs} ghi đăng ký, đăng xuất, đổi mật khẩu, tải tệp, reindex.
+Thông báo lỗi tiếng Việt, không traceback.}
+{Truy vết khi nhầm reindex; người dùng biết thiếu index hay file không có chữ.}
+{503 gợi ý tra cứu khi chưa nhúng. Hết hạn mức: giữ câu hỏi đã lưu. Mất SSE:
+gửi lại được.}
+{Mỗi hành động nhạy cảm (ghi log). Mọi lỗi trả về client (thông báo). Chưa có
+UI xem log.}

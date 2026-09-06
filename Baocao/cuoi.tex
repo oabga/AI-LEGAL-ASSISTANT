@@ -49,6 +49,45 @@ Quốc hội, \textit{Luật Quản lý thuế}, số 38/2019/QH14.
 PostgreSQL Global Development Group, ``Full Text Search,'' tài liệu trực tuyến,
 \url{https://www.postgresql.org/docs/current/textsearch.html}.
 
+\bibitem{rfc7519}
+M. Jones, J. Bradley, N. Sakimura, ``JSON Web Token (JWT),'' RFC~7519, 2015.
+
+\bibitem{fastapi}
+S. Ramírez, \textit{FastAPI documentation}, tài liệu trực tuyến,
+\url{https://fastapi.tiangolo.com}.
+
+\bibitem{react}
+Meta, \textit{React documentation}, tài liệu trực tuyến,
+\url{https://react.dev}.
+
+\bibitem{docker}
+Docker Inc., \textit{Docker documentation}, tài liệu trực tuyến,
+\url{https://docs.docker.com}.
+
+\bibitem{chromadb}
+Chroma, \textit{Chroma documentation}, tài liệu trực tuyến,
+\url{https://docs.trychroma.com}.
+
+\bibitem{rfc9110}
+R. Fielding, M. Nottingham, J. Reschke, ``HTTP Semantics,'' RFC~9110, 2022.
+
+\bibitem{rfc8259}
+T. Bray, ``The JavaScript Object Notation (JSON) Data Interchange Format,''
+RFC~8259, 2017.
+
+\bibitem{vaswani2017}
+A. Vaswani, N. Shazeer, N. Parmar \textit{et al.}, ``Attention Is All You Need,''
+\textit{NeurIPS}, 2017.
+
+\bibitem{argon2}
+A. Biryukov, D. Dinu, D. Khovratovich, ``Argon2: the memory-hard function for
+password hashing and other applications,'' winner of the Password Hashing
+Competition, 2015.
+
+\bibitem{pdt590}
+pdt590, ``vietnamese-legal-documents,'' Hugging Face Datasets, 2024.
+\url{https://huggingface.co/datasets/pdt590/vietnamese-legal-documents}.
+
 \end{thebibliography}
 
 \clearpage
@@ -76,20 +115,7 @@ tiên thành quản trị. Tra cứu dùng được ngay. Hỏi đáp cần đã
 
 Thiếu khóa: web vẫn mở, hỏi đáp trả 503 chữ tiếng Việt, không phải stack trace.
 
-\section*{Phụ lục B. Chạy test}
-
-Backend (cần Postgres đang mở cổng 23432):
-
-\texttt{cd backend \&\& uv run pytest}
-
-Frontend:
-
-\texttt{cd frontend \&\& npm test}
-
-Tổng \soTest{} test. Database test tên \texttt{legal\_assistant\_test}, tạo và
-xóa trong phiên pytest, không đụng dữ liệu demo.
-
-\section*{Phụ lục C. Một số đường API}
+\section*{Phụ lục B. Một số đường API}
 
 \begin{longtable}{p{6.6cm}p{7.2cm}}
 \toprule
@@ -112,20 +138,83 @@ xóa trong phiên pytest, không đụng dữ liệu demo.
 \texttt{POST /api/v1/documents/\{id\}/review} & 202, chạy nền \\
 \texttt{GET /api/v1/compliance/tasks} & Lịch \\
 \texttt{POST /api/v1/admin/corpus/reindex} & Nhúng lại, chỉ admin \\
-\texttt{POST /api/v1/lab/competition} & Bộ câu hỏi, chỉ admin \\
 \bottomrule
 \end{longtable}
 
-\section*{Phụ lục D. Lab thi đấu}
+\section*{Phụ lục C. Chạy hàng loạt câu hỏi}
 
-\texttt{POST /api/v1/lab/competition} nhận JSON danh sách câu, trả file kết quả
-đúng khuôn cũ. Dùng khi cần số liệu với mô hình mở. Sản phẩm mặc định trên
-Docker không bật competition mode cho user thường.
+Quản trị mở trang \texttt{/admin/batch-eval}, gửi một mảng JSON (mỗi phần tử có
+câu hỏi) để pipeline chạy lần lượt, xem tiến độ và tải kết quả. Chế độ này bỏ
+qua phân tích ý định (luôn truy hồi) và không gắn lịch sử hội thoại, nhằm tái
+lập được trên cùng bộ câu. User thường không gọi được các đường này.
 
-\section*{Phụ lục E. Ghi chú biên dịch báo cáo}
+\section*{Phụ lục D. Ghi chú biên dịch báo cáo}
 
 File \texttt{main.tex} phải chạy XeLaTeX (gói \texttt{fontspec}). Trong Cursor
 hoặc VS Code, biên dịch bằng recipe xelatex (hoặc \texttt{latexmk -xelatex}).
-Đầu file có chỉ thị TEX program trỏ sang xelatex. Ảnh minh họa đang để chế độ
-demo của \texttt{graphicx}; khi có file trong thư mục \texttt{Baocao/images/}
-thì bỏ tùy chọn demo trên lệnh nạp gói.
+Đầu file có chỉ thị TEX program trỏ sang xelatex. Ảnh minh họa nằm trong thư mục
+\texttt{Baocao/images/}; không dùng tùy chọn \texttt{demo} của \texttt{graphicx}
+(tùy chọn đó vẽ hình đen đặc).
+
+\section*{Phụ lục E. Biến môi trường chính}
+
+\begin{longtable}{p{5.2cm}p{8.6cm}}
+\toprule
+\textbf{Biến} & \textbf{Ý nghĩa} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Biến} & \textbf{Ý nghĩa} \\
+\midrule
+\endhead
+\texttt{LLM\_API\_KEY} & Khóa gọi Gemini (sinh câu) \\
+\texttt{EMBEDDINGS\_API\_KEY} & Khóa nhúng; có thể trùng khóa LLM \\
+\texttt{JWT\_SECRET\_KEY} & Khóa ký JWT, tối thiểu đủ dài ngẫu nhiên \\
+\texttt{LEGAL\_DATABASE\_URL} & Chuỗi kết nối Postgres (Compose tự ghép) \\
+\texttt{CORS\_ALLOW\_ORIGINS} & Danh sách origin, dùng lúc dev Vite \\
+\texttt{LLM\_MODEL} & Mặc định \texttt{gemini-2.5-flash} \\
+\texttt{EMBEDDINGS\_MODEL} & Mặc định \texttt{gemini-embedding-001} \\
+\texttt{POSTGRES\_PORT} & Mặc định 23432 trên host \\
+\bottomrule
+\end{longtable}
+
+\section*{Phụ lục F. Cấu trúc thư mục mã nguồn}
+
+\begin{itemize}
+    \item \path{backend/src/routers}: cổng HTTP.
+    \item \path{backend/src/services/agents}: LangGraph.
+    \item \path{backend/src/services/vector_store}: BM25, Chroma, hybrid.
+    \item \path{backend/src/services/legal}: FTS, catalog.
+    \item \path{backend/src/services/contracts}: trích chữ, soát xét.
+    \item \path{backend/src/services/compliance}: seed và sinh lịch.
+    \item \path{backend/src/models}: ORM.
+    \item \path{backend/alembic}: migration.
+    \item \path{frontend/src/pages}: trang.
+    \item \path{frontend/src/components/chat}: hội thoại.
+    \item \path{corpus/law_manifest.json}: danh mục số hiệu.
+    \item \path{data/base_data.json}: Điều.
+    \item \path{Baocao/}: nguồn báo cáo XeLaTeX.
+\end{itemize}
+
+\section*{Phụ lục G. Use case còn lại (rút gọn)}
+
+UC-01: khách gửi email, mật khẩu, hồ sơ công ty; hệ thống tạo user, có thể gắn
+admin nếu là người đầu; sinh lịch nếu có tổ chức. UC-02: login cấp hai token;
+refresh đổi access. UC-04: đổi tên hội thoại, xóa mềm hoặc xóa hẳn tùy API; không
+xem hội thoại người khác. UC-06: ô tìm trên \texttt{/laws}, ba tầng FTS. UC-08:
+thành viên cùng tổ chức xem finding. UC-10: admin import JSON, reindex. UC-11:
+admin khóa tài khoản hoặc đổi vai trò. UC-12: admin gửi bộ câu, nhận file kết quả.
+
+\section*{Phụ lục H. Thuật ngữ gắn với cách đóng gói đồ án}
+
+\textbf{Container} ở đây là một trong ba tiến trình Compose (Postgres, backend,
+nginx). \textbf{Image} là bản đóng gói từng dịch vụ. \textbf{Volume}
+\texttt{postgres\_data}, \texttt{chroma\_db}, \texttt{uploads} giữ dữ liệu khi
+tắt cụm. \textbf{Proxy} là nginx nhận một cổng rồi chuyển \texttt{/api} vào
+backend. \textbf{Healthcheck} là \texttt{pg\_isready} và \texttt{/health}, để
+backend đợi CSDL sẵn sàng. \textbf{Migration} là bản Alembic đổi cột.
+\textbf{Interceptor} là hàm Axios gắn token và gỡ JSON khi gửi file.
+\textbf{Splat} là đoạn URL bắt phần còn lại, dùng cho số hiệu có dấu \texttt{/}.
+
+\input{cuoi-phu-luc-mo-rong}
+

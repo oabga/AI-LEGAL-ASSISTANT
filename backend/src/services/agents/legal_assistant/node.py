@@ -41,14 +41,14 @@ async def analyze_intent_node(runtime: Any, state: LegalAssistantState) -> Legal
         state["legal_flag"] = "NEXT"
         state["skip_retrieval"] = False
         state.setdefault("tool_calls", []).append(
-            {"name": "analyze_intent", "provider": "competition", "result": "NEXT"}
+            {"name": "analyze_intent", "provider": "batch", "result": "NEXT"}
         )
         await emit_progress(
             "intent",
             "completed",
-            "Competition mode: bỏ qua intent",
+            "Chạy hàng loạt: bỏ qua phân tích ý định",
             elapsed_ms=_elapsed_ms(started),
-            detail="Đi thẳng vào legal RAG để chạy tập test.",
+            detail="Đi thẳng vào truy hồi pháp lý để mọi câu đều được tìm Điều.",
             metadata={"legal_flag": "NEXT", "competition_mode": True},
         )
         return state
@@ -484,7 +484,7 @@ async def generate_answer_node(runtime: Any, state: LegalAssistantState) -> Lega
 
 
 async def format_submission_node(_: Any, state: LegalAssistantState) -> LegalAssistantState:
-    """Tạo nguồn theo format bài thi và ghi AIMessage vào memory."""
+    """Chuẩn hoá danh sách căn cứ và ghi AIMessage vào memory."""
 
     started = perf_counter()
     await emit_progress("format", "started", "Đang chuẩn hóa nguồn và lưu short-memory")

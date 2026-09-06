@@ -1,0 +1,65 @@
+\section{Công nghệ phần mềm áp dụng trong đồ án}
+
+Giáo trình công nghệ phần mềm~\cite{thanh2024} nhấn mạnh phần mềm là sản phẩm
+có vòng đời: xác định nhu cầu, đặc tả, thiết kế, hiện thực, kiểm thử, vận hành.
+Đồ án ngành không đủ thời gian cho quy trình thác nước đầy đủ tài liệu IEEE, nhưng
+các pha vẫn hiện diện và được ghi trong báo cáo này.
+
+\subsection{Yêu cầu phần mềm}
+
+Yêu cầu chức năng mô tả việc hệ thống phải làm (hỏi đáp, tra cứu, lịch). Yêu cầu
+phi chức năng mô tả ràng buộc (thời gian đáp ứng tra cứu, suy giảm khi thiếu
+LLM, không CORS mở). Use case là hình thức đặc tả gần người dùng; bảng YC-xx là
+hình thức gần kiểm thử. Hai hình thức phải khớp: nếu use case nói 404 khi xem
+chéo hội thoại thì phải có test tương ứng.
+
+Yêu cầu thay đổi trong quá trình làm (thêm \texttt{seq}, đổi cổng Postgres) được
+ghi như quyết định thiết kế, không giấu. Đó là vòng lặp ngắn, không phải thiếu
+phân tích.
+
+\subsection{Thiết kế kiến trúc và thiết kế chi tiết}
+
+Thiết kế kiến trúc chọn phân lớp, chọn client--server, chọn ba container. Thiết
+kế chi tiết chọn schema bảng, chọn bảy nút, chọn mã HTTP. Nhầm hai mức này dẫn
+tới ``vẽ microservices'' trong khi đồ án một backend --- báo cáo không vẽ kiến
+trúc không hiện thực.
+
+Mô hình quan hệ thực thể (ER): thực thể (tổ chức, user, hội thoại, Điều), thuộc
+tính, mối kết hợp 1--n. Chuẩn hoá: không lặp nguyên văn luật trong mọi task tuân
+thủ; task trỏ rule, rule chứa \texttt{legal\_refs}. Vector không nằm Postgres vì
+khác mô hình truy vấn --- đó vẫn là thiết kế, không phải thiếu ER.
+
+\subsection{Hiện thực và chuẩn mã}
+
+Quy ước: Python type hint ở biên giới API; TypeScript strict phía client; không
+commit \texttt{.env}. Tên nút LangGraph giữ tiếng Anh khớp mã; báo cáo giải thích
+tiếng Việt. Tách router / service / model tránh SQL trong JSX và tránh JSX trong
+service.
+
+\subsection{Vận hành và bảo trì}
+
+Compose, healthcheck, volume, Alembic là vận hành mức đồ án. Bảo trì corpus
+(import, reindex) nằm trang admin, không đòi sửa mã khi thêm văn bản cùng schema.
+Bảo trì rule tuân thủ vẫn đòi sửa Python/seed --- hạn chế đã nêu.
+
+\subsection{Vì sao không microservices}
+
+Tách auth, RAG, FTS thành nhiều dịch vụ tăng độ phức tạp mạng, quan sát và triển
+khai, không tăng giá trị với một người hiện thực. Ba container đã tách được mối
+quan tâm lưu trữ / API / tĩnh. Hướng sau này: tách worker soát xét và tách Chroma
+khi cần nhân bản backend, không phải tách từ ngày đầu.
+
+\subsection{Máy ảo, container và WSL2}
+
+Máy ảo (VM) ảo hoá phần cứng, chạy kernel riêng, nặng. Container chia kernel
+máy chủ, đóng gói process và phụ thuộc, nhẹ hơn~\cite{docker}. Đồ án dùng
+container. WSL2 là máy ảo Linux trên Windows, là môi trường \emph{host} khi phát
+triển, không phải thành phần sản phẩm. Người chấm trên Linux thuần vẫn chạy
+cùng file Compose.
+
+\subsection{Linux, tiến trình và cổng}
+
+Mỗi container là một (hoặc vài) tiến trình nghe cổng. Xung đột cổng 5432 trên
+máy có sẵn Postgres là lý do đổi 23432. \texttt{localhost} trong container không
+phải localhost host --- đã nêu ở mục mạng cầu. Hiểu tiến trình/cổng giúp đọc
+\texttt{docker compose ps} khi demo hỏng.

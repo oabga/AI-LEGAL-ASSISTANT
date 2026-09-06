@@ -1,0 +1,203 @@
+% KHÔNG \input file này: nhiều đoạn bám tài liệu hãng (Hooks, Context, Fetch,
+% Docker multi-stage) --- dễ trùng Turnitin. Chương 2 đã đủ chỗ dùng trong đồ án.
+
+\section{Bổ sung chi tiết các công nghệ còn lại}
+
+Các mục dưới đây viết theo cùng khuôn: khái niệm là gì, đặc điểm kỹ thuật liên
+quan, chỗ đồ án gắn vào. Mục đích là độc giả ngành CNTT đọc báo cáo không cần
+mở tài liệu hãng, đồng thời không nhầm đồ án với giáo trình tổng quát: mỗi
+công nghệ kết thúc bằng quyết định hiện thực.
+
+\subsection{LangChain và vị trí của LangGraph}
+
+LangChain cung cấp trừu tượng gọi LLM, ghép prompt, bộ nhớ, công cụ. LangGraph
+là lớp đồ thị trạng thái, hợp khi pipeline có nhánh, lặp và cần nhật ký từng
+bước. Đồ án dùng LangGraph cho bảy nút hỏi đáp, không dựng agent tự chọn công
+cụ tự do (ReAct không giới hạn): pháp lý cần thứ tự truy hồi rồi sinh, không
+cần mô hình tự quyết định ``hôm nay có gọi máy tính không''.
+
+Bộ nhớ mặc định \texttt{InMemorySaver} mất khi restart. Đồ án nạp lượt chat từ
+PostgreSQL, phù hợp nhiều worker và Docker recreate.
+
+\subsection{Uvicorn}
+
+Uvicorn là máy chủ ASGI. Lệnh phát triển: \texttt{uvicorn} trỏ ứng dụng FastAPI,
+reload khi sửa mã. Trong Docker, cùng Uvicorn (không reload) đứng sau cổng 8023.
+Không dùng Gunicorn đồng bộ thuần vì SSE. Số worker: đồ án mặc định một tiến
+trình trong Compose để Chroma nhúng trong process không bị hai worker đua file
+chỉ mục; nhân rộng worker là việc khi tách Chroma thành dịch vụ.
+
+\subsection{asyncpg}
+
+asyncpg là driver PostgreSQL bất đồng bộ. SQLAlchemy 2 dùng nó qua URL
+\texttt{postgresql+asyncpg://}. Khác psycopg2 đồng bộ: không chặn vòng sự kiện
+khi chờ truy vấn. Chuỗi kết nối, SSL, timeout nằm biến môi trường, không hardcode.
+
+\subsection{Pydantic Settings}
+
+Ngoài schema API, Pydantic đọc biến môi trường vào lớp Settings (prefix, kiểu,
+giá trị mặc định). Sai kiểu khóa (ví dụ cổng không phải số) fail sớm lúc khởi
+động, tốt hơn fail lúc request đầu. Đồ án tách Settings (bí mật, URL) khỏi
+\texttt{config.yaml} (tham số RAG).
+
+\subsection{YAML}
+
+YAML là định dạng cấu hình có lùi hàng, hỗ trợ comment --- khác JSON. Tham số
+$k$, trọng số RRF, bật/tắt HyDE nằm YAML để chỉnh không sửa Python. YAML dễ sai
+thụt dòng; file đồ án giữ nông, không neo mảng phức tạp.
+
+\subsection{Chroma collection và metadata}
+
+Mỗi Điều khi upsert vào Chroma kèm metadata: \texttt{law\_id}, số Điều, chương,
+mã nội bộ. Lọc metadata cho phép hạn chế search space. Kho đồ án chủ yếu một
+collection mặc định vì corpus đóng. Xóa collection khi đổi chiều embedding là
+bắt buộc: cosine trên hai không gian khác chiều không so được.
+
+\subsection{Cosine, L2 và tích vô hướng}
+
+Khoảng cách L2 phạt độ lớn vector; cosine chuẩn hoá độ dài, phù hợp embedding
+đã chuẩn. Chroma cấu hình cosine cho đồ án. Đổi sang L2 mà không đổi cách nhúng
+làm lệch thứ tự top-$k$. Công thức cosine đã nêu ở Chương~2; ở đây chỉ nhấn:
+metric là một phần hợp đồng chỉ mục, phải ghi vào manifest.
+
+\subsection{Matryoshka representation}
+
+Một số mô hình nhúng huấn luyện để tiền tố vector vẫn mang nghĩa (Matryoshka).
+Cắt 1536 từ 3072 chiều dựa trên tính chất này. Không phải mọi mô hình cắt được.
+Đổi sang nhà cung cấp khác phải đọc tài liệu mô hình trước khi cắt.
+
+\subsection{Backoff khi gọi API}
+
+Mã 429 (quá tải hạn mức) và 5xx nhà cung cấp xử lý bằng nghỉ dần (exponential
+backoff) và giới hạn số lần thử. Đồ án: lô embedding 64 Điều, nghỉ tăng khi 429.
+Không thử lại vô hạn: hết lần thì startup/reindex báo lỗi, không treo container
+im lặng.
+
+\subsection{React Hooks}
+
+Hook là hàm đặc biệt (\texttt{useState}, \texttt{useEffect}, \texttt{useMemo},
+\texttt{useRef}) chỉ gọi ở đỉnh component, cho phép component hàm có trạng thái.
+Đồ án: \texttt{useState} cho ô nhập; \texttt{useEffect} khôi phục phiên; hook
+TanStack Query bọc \texttt{useQuery}/\texttt{useMutation}. Không dùng class
+component. Sai quy tắc hook (gọi trong nhánh \texttt{if}) làm React lệch state
+--- các màn hình giữ hook ở top-level.
+
+\subsection{Context API so với Zustand}
+
+Context React truyền dữ liệu sâu cây mà không prop drilling. Context không tối
+ưu tần suất cập nhật cao (mọi consumer rerender). Zustand chọn lọc subscribe.
+Đồ án: phiên đăng nhập ít trường, đổi thưa --- Zustand đủ. Không bọc toàn app
+bằng một Context khổng lồ chứa corpus.
+
+\subsection{Fetch API}
+
+Fetch là API trình duyệt gốc cho HTTP. Đồ án dùng Fetch cho SSE (đọc
+\texttt{ReadableStream}), Axios cho REST. EventSource không gắn Bearer. Parser
+tách khối \texttt{event:}/\texttt{data:} được Vitest phủ, vì lỗi off-by-one ở
+đây làm UI ``đơ'' giữa chừng câu trả lời.
+
+\subsection{FormData và multipart}
+
+Tải PDF dùng \texttt{multipart/form-data}: ranh giới (boundary) tách file và
+trường. Axios nếu để \texttt{Content-Type: application/json} thì hỏng. Interceptor
+đồ án xóa Content-Type khi body là FormData, để trình duyệt tự gắn boundary.
+
+\subsection{Nginx reverse proxy}
+
+Reverse proxy nhận request từ client, chuyển tiếp server nội bộ, trả đáp. Lợi:
+một origin, nén, cache tĩnh, ẩn cổng backend. Cấu hình đồ án: tệp
+\texttt{index.html} cho SPA fallback (React Router), \texttt{/api} tới
+\texttt{backend:8023}, \texttt{proxy\_buffering off} liên quan SSE --- nếu nginx
+đệm hết luồng, UI không thấy token dần.
+
+\subsection{Image Docker đa giai đoạn}
+
+Dockerfile frontend: giai đoạn Node build Vite; giai đoạn nginx copy
+\texttt{dist}. Image cuối không chứa npm hay mã nguồn TypeScript, nhỏ hơn và
+giảm bề mặt. Backend: image Python 3.10, cài uv, copy mã, không chạy phần tử
+dev reload.
+
+\subsection{Volume và mạng cầu Compose}
+
+Volume \texttt{postgres\_data}, \texttt{chroma\_db}, \texttt{uploads} giữ dữ liệu
+khi \texttt{docker compose down} (chưa \texttt{-v}). Mạng cầu DNS nội bộ: backend
+gọi host \texttt{postgres}, không gọi \texttt{localhost} (localhost trong
+container là chính nó). Sai host này là lỗi hay gặp lúc chuyển từ chạy local
+sang Compose.
+
+\subsection{Healthcheck}
+
+Compose không chỉ \texttt{depends\_on} khởi động xong process. Healthcheck
+Postgres: \texttt{pg\_isready}. Healthcheck backend: HTTP \texttt{/health}.
+Backend đợi Postgres healthy mới chạy migration/nạp. \texttt{/health} không đòi
+JWT và không gọi Gemini, để vòng lặp Docker không đốt hạn mức.
+
+\subsection{Alembic revision}
+
+Mỗi revision có mã cha. Lịch sử tuyến tính tránh hai nhánh schema. Đồ án không
+sửa tay bảng trên container đang chạy rồi quên revision: lần compose máy khác
+sẽ thiếu cột. Test tạo database mới chạy upgrade từ đầu.
+
+\subsection{Passlib}
+
+Passlib bọc nhiều thuật toán băm mật khẩu, đồ án chọn argon2. API
+\texttt{hash}/\texttt{verify}. Verify sai (hash hỏng, thuật toán lạ) trả False,
+không raise --- tránh một hàng CSDL xấu làm cả trang login 500.
+
+\subsection{python-jose hoặc thư viện JWT tương đương}
+
+Tạo và giải mã JWT: header thuật toán, payload claim, chữ ký. Đồ án kiểm
+\texttt{exp} và \texttt{type}. Không nhét quyền admin vào localStorage rồi tin
+phía client: mọi router admin gọi \texttt{require\_role} trên server.
+
+\subsection{slowapi và khóa đếm}
+
+Đếm theo key user id khi đã đăng nhập, theo IP khi chưa. Chat 20/phút, upload
+30/giờ. Số này là tham số, không phải hằng số nghiên cứu. Log 429 giúp phát hiện
+vòng lặp frontend (ví dụ poll quá dày --- poll hợp đồng đồ án 2,5 giây, không
+phải 50 ms).
+
+\subsection{Vitest và jsdom}
+
+Vitest chạy trên Vite, biến môi trường gần production frontend. jsdom mô phỏng
+DOM đủ để test hàm thuần và parser. Không thay thế kiểm thử trình duyệt. 24 test
+nhắm chỗ dễ vỡ: SSE, định tuyến splat số hiệu, định dạng ngày task.
+
+\subsection{pytest-asyncio và fixture CSDL}
+
+Test async cần vòng sự kiện. Fixture tạo engine, chạy Alembic, yield, xóa database
+tạm. Cấm trỏ fixture vào database demo: một test xóa user sẽ phá dữ liệu người
+dùng đang xem.
+
+\subsection{Type hint Python}
+
+PEP 484: chú thích kiểu, công cụ (mypy) kiểm lúc phát triển. FastAPI dùng hint
+để sinh OpenAPI. Đồ án không bắt buộc mypy sạch 100\% trên toàn repo trong phạm
+vi thời gian, nhưng schema Pydantic --- chỗ biên giới mạng --- được khai báo
+bắt buộc.
+
+\subsection{ESLint và ràng buộc TypeScript}
+
+\texttt{strict} TypeScript bắt null. Đồ án hưởng lợi khi field API đổi tên: build
+frontend gãy trước khi demo. ESLint không phải phần lõi RAG nhưng giữ import
+hook đúng quy tắc.
+
+\subsection{Tailwind JIT}
+
+Just-in-time quét class trong JSX, chỉ phát CSS dùng tới. Class động ghép chuỗi
+(\texttt{bg-} + biến) có thể bị bỏ sót; đồ án viết class đủ chữ. Bản 4 đổi chỗ
+cấu hình so với bản 3; lock phiên bản trong npm để image build lặp lại được.
+
+\subsection{Khác biệt dev và production frontend}
+
+Dev: Vite HMR, source map, proxy. Production: tệp băm tên (hash) để cache lâu,
+không HMR. Cùng một mã gọi \texttt{/api/v1/...} tương đối. Lỗi thường gặp: build
+thiếu biến \texttt{VITE\_*} vì biến Vite nhúng lúc build, không lúc chạy nginx.
+Đồ án để base URL trống, tránh nhúng \texttt{localhost} vào image.
+
+\subsection{Tách trang quản trị khỏi nghiệp vụ DNNVV}
+
+Router \texttt{/admin} phục vụ quản trị corpus, user và chạy hàng loạt câu hỏi.
+Người dùng DNNVV không cần các trang này. Tách route và \texttt{lazy()} giảm
+bundle, đồng thời tránh tài khoản thường đốt hạn mức mô hình --- các đường đó
+đòi vai trò admin.

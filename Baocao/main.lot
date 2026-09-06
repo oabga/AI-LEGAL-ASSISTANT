@@ -1,62 +1,68 @@
 \xpginauxfiletrue 
 \addvspace {10\p@ }
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {1.1}{\ignorespaces Ba kiểu công cụ em đối chiếu trước khi chốt hướng.}}{4}{table.caption.9}%
+\contentsline {table}{\numberline {1.1}{\ignorespaces Đối chiếu cổng VBQPPL, chatbot không nguồn và hướng đồ án.}}{5}{table.caption.9}%
 \addvspace {10\p@ }
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {2.1}{\ignorespaces Công nghệ gắn vào sản phẩm.}}{9}{table.caption.10}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Công nghệ gắn vào sản phẩm.}}{14}{table.caption.10}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {2.2}{\ignorespaces Tổng kết khối truy hồi hybrid.}}{10}{table.caption.11}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Bảy nút LangGraph trên cấu hình sản phẩm.}}{22}{table.caption.11}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {2.3}{\ignorespaces Tổng kết khối sinh câu và hậu kiểm trích dẫn.}}{10}{table.caption.12}%
+\contentsline {table}{\numberline {2.3}{\ignorespaces Tổng kết khối truy hồi lai.}}{24}{table.caption.12}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {2.4}{\ignorespaces Tổng kết khối nghiệp vụ DNNVV (hợp đồng + lịch).}}{10}{table.caption.13}%
+\contentsline {table}{\numberline {2.4}{\ignorespaces Tổng kết khối sinh câu và hậu kiểm trích dẫn.}}{24}{table.caption.13}%
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {2.5}{\ignorespaces Tổng kết khối nghiệp vụ DNNVV (hợp đồng + lịch).}}{24}{table.caption.14}%
 \addvspace {10\p@ }
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.1}{\ignorespaces Yêu cầu chức năng em chốt trước khi viết API.}}{12}{table.caption.14}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Yêu cầu chức năng của hệ thống.}}{26}{table.caption.15}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.2}{\ignorespaces Ngưỡng phi chức năng em tự đặt khi viết code.}}{13}{table.caption.15}%
-\setforeignlanguage {vietnamese}
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.3}{\ignorespaces Tác nhân.}}{14}{table.caption.17}%
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.4}{\ignorespaces Danh sách use case.}}{14}{table.caption.19}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Ngưỡng phi chức năng của hệ thống.}}{26}{table.caption.16}%
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.5}{\ignorespaces Đặc tả UC-03 --- Hỏi đáp.}}{15}{table.caption.20}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Tác nhân.}}{27}{table.caption.18}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.6}{\ignorespaces Đặc tả UC-07 --- Soát xét hợp đồng.}}{16}{table.caption.21}%
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.7}{\ignorespaces Đặc tả UC-05 --- Tra cứu và đọc văn bản.}}{16}{table.caption.22}%
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.8}{\ignorespaces Đặc tả UC-09 --- Lịch tuân thủ.}}{16}{table.caption.23}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Danh sách use case.}}{27}{table.caption.20}%
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.9}{\ignorespaces Đếm nhanh theo loại và theo lĩnh vực (một văn bản vào đúng một lĩnh vực).}}{18}{table.caption.25}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces Đặc tả UC-03 --- Hỏi đáp.}}{28}{table.caption.21}%
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.6}{\ignorespaces Đặc tả UC-07 --- Soát xét hợp đồng.}}{29}{table.caption.22}%
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.7}{\ignorespaces Đặc tả UC-05 --- Tra cứu và đọc văn bản.}}{29}{table.caption.23}%
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.8}{\ignorespaces Đặc tả UC-09 --- Lịch tuân thủ.}}{29}{table.caption.24}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.9}{\ignorespaces Đếm nhanh theo loại và theo lĩnh vực (một văn bản vào đúng một lĩnh vực).}}{31}{table.caption.26}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.10}{\ignorespaces Các bảng nghiệp vụ và ghi chú hiện thực.}}{32}{table.caption.28}%
+\setforeignlanguage {vietnamese}
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.11}{\ignorespaces Bảng PostgreSQL chính và khóa ngoại then chốt.}}{35}{table.caption.30}%
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.10}{\ignorespaces Bảng. Tên cột chỉ liệt kê những cột em từng vấp khi cài.}}{19}{table.caption.27}%
 \setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.12}{\ignorespaces Mười hai rule tuân thủ và điều kiện hồ sơ để rule được sinh.}}{37}{table.caption.34}%
 \setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {3.13}{\ignorespaces Ánh xạ module code $\leftrightarrow $ nghiệp vụ.}}{39}{table.caption.35}%
+\contentsline {table}{\numberline {3.14}{\ignorespaces Danh mục 38{} văn bản quy phạm trong corpus.}}{41}{table.3.14}%
 \setforeignlanguage {vietnamese}
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.11}{\ignorespaces Mười hai rule em cài, và điều kiện hồ sơ để rule được sinh.}}{21}{table.caption.32}%
-\setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {3.12}{\ignorespaces Ánh xạ module code $\leftrightarrow $ nghiệp vụ.}}{23}{table.caption.33}%
+\contentsline {table}{\numberline {3.15}{\ignorespaces 12{} rule tuân thủ: tần suất và điều kiện lọc.}}{46}{table.caption.36}%
 \addvspace {10\p@ }
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {4.1}{\ignorespaces Cấu hình máy và cụm khi chạy thử.}}{25}{table.caption.34}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Cấu hình máy và cụm khi chạy thử.}}{48}{table.caption.37}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {4.2}{\ignorespaces Kết quả smoke test trên cụm Docker em ghi lại.}}{26}{table.caption.35}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Quan sát khi chạy cụm Docker trên máy làm đồ án.}}{48}{table.caption.38}%
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {4.3}{\ignorespaces Đối chiếu hồ sơ doanh nghiệp và task được sinh.}}{27}{table.caption.36}%
-\setforeignlanguage {vietnamese}
-\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {4.3}{\ignorespaces Đối chiếu hồ sơ doanh nghiệp và task được sinh.}}{49}{table.caption.39}%
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
 \setforeignlanguage {vietnamese}
-\contentsline {table}{\numberline {4.4}{\ignorespaces Đối chiếu bảy mục tiêu cụ thể với bằng chứng.}}{30}{table.caption.42}%
+\setforeignlanguage {vietnamese}
+\contentsline {table}{\numberline {4.4}{\ignorespaces Đối chiếu bảy mục tiêu cụ thể với bằng chứng.}}{52}{table.caption.44}%
 \addvspace {10\p@ }
 \xpginauxfilefalse 

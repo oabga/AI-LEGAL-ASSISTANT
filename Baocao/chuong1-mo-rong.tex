@@ -1,0 +1,68 @@
+\section{Bối cảnh pháp lý và đặc thù DNNVV}
+
+\subsection{Doanh nghiệp nhỏ và vừa trong hệ thống pháp luật Việt Nam}
+
+Luật Hỗ trợ doanh nghiệp nhỏ và vừa số 04/2017/QH14 xác định DNNVV theo tiêu
+chí quy mô (lao động, doanh thu, nguồn vốn) gắn với ngành nghề, và gắn một số
+chính sách hỗ trợ~\cite{quochoi2017}. Đồ án không tái lập toàn bộ tiêu chí phân
+loại để cấp ``giấy chứng nhận DNNVV''. Hồ sơ tổ chức trong hệ thống chỉ lưu các
+tham số đủ để sinh lịch và mặc định chủ thể khi hỏi đáp: tên, mã số thuế, số
+lao động, kỳ kê khai GTGT.
+
+Điểm thực tiễn: nghĩa vụ thuế, bảo hiểm, báo cáo lao động và hóa đơn không biến
+mất khi quy mô nhỏ. Bộ phận pháp chế riêng thì thường không có. Người dùng thật
+của đồ án vì thế là chủ doanh nghiệp, kế toán dịch vụ hoặc nhân sự kiêm nhiệm
+--- đối tượng hỏi bằng lời nói hàng ngày hơn là bằng số hiệu thông tư.
+
+\subsection{Hệ thống văn bản quy phạm và thứ bậc áp dụng}
+
+Văn bản do Quốc hội ban hành (luật, bộ luật) đặt nguyên tắc. Nghị định của
+Chính phủ quy định chi tiết. Thông tư của bộ hướng dẫn thực hiện. Câu hỏi thao
+tác (``nộp tờ khai ngày nào'', ``hóa đơn gửi khi nào'') thường rơi xuống nghị
+định và thông tư, trong khi câu hỏi nguyên tắc (``có được đơn phương chấm dứt
+không'') rơi ở luật. Corpus đồ án cố ý chứa cả ba cấp trong các lĩnh vực đã chọn,
+tránh tình trạng trả lời đúng luật khung nhưng sai bước kê khai.
+
+Hiệu lực theo thời gian là bài toán pháp điển riêng: văn bản mới thay văn bản
+cũ, điều khoản chuyển tiếp, văn bản hết hiệu lực còn nằm trên cổng. Đồ án lưu
+theo số hiệu, chưa gắn lịch sử hiệu lực từng Điều. Khi kho có hai luật cùng tên
+khác số (ví dụ quản lý thuế, thuế GTGT), cả hai đều tìm được; người dùng và
+người quản trị phải tự chọn bản đang áp dụng. Hạn chế này được nêu lại ở
+Chương~5, không giấu trong phần ``đã hoàn thiện''.
+
+\subsection{Rủi ro tuân thủ đối với người không chuyên}
+
+Chậm nộp, sai tờ khai, thiếu báo cáo lao động có thể kéo theo tiền chậm nộp và
+xử phạt hành chính. Chatbot không nguồn tạo rủi ro kiểu khác: câu tiếng Việt
+trôi, kèm số Điều nghe quen, khiến người dùng tin hơn kết quả tìm từ khóa thô.
+Đồ án đặt yêu cầu tối thiểu: mọi căn cứ đưa ra UI phải mở được về một Điều trong
+kho. Yêu cầu này không biến hệ thống thành tư vấn pháp lý có trách nhiệm nghề
+nghiệp. Người dùng vẫn phải đối chiếu văn bản gốc và, khi tranh chấp, nhờ tổ
+chức hành nghề.
+
+\subsection{Ranh giới trợ lý AI và dịch vụ pháp lý}
+
+Hệ thống hỗ trợ tra cứu, nhắc việc và chỉ ra chỗ hợp đồng có thể lệch so với
+Điều đã truy hồi. Hệ thống không đại diện tố tụng, không soạn hồ sơ nộp cơ quan
+thuế, không cam kết ``thắng kiện''. Câu trả lời mang tính hỗ trợ thông tin trên
+corpus đóng. Ranh giới này vừa là yêu cầu đạo đức nghề, vừa là phạm vi đồ án
+ngành: thời gian không đủ để xây phân hệ chữ ký số hay kênh nộp thật.
+
+\section{Bài toán tin học đặt ra từ hiện trạng}
+
+Từ hiện trạng trên, bài toán không phải ``cài chatbot''. Ba lớp việc phải làm
+cùng lúc:
+
+\begin{enumerate}
+    \item \textbf{Lớp dữ liệu.} Chuẩn hóa \soLuat{} văn bản thành Điều có siêu
+    dữ liệu (số hiệu, chương, viện dẫn), nhập PostgreSQL, lập chỉ mục không dấu,
+    nhúng vector.
+    \item \textbf{Lớp suy diễn hạn chế.} Pipeline RAG lai, hậu kiểm citation,
+    lịch theo rule --- suy diễn nằm ở chỗ ghép nguồn, không ở chỗ mô hình tự
+    đặt ra hạn nộp.
+    \item \textbf{Lớp phần mềm.} Đa người dùng, JWT, cách ly tổ chức, SSE, Docker.
+    Không có lớp này thì pipeline chỉ chạy được trên máy phát triển.
+\end{enumerate}
+
+Báo cáo lần lượt trả lời ba lớp: Chương~2 cho kỹ thuật truy hồi và công nghệ;
+Chương~3 cho phân tích thiết kế; Chương~4 cho bằng chứng chạy được.

@@ -1,0 +1,40 @@
+\section{Tiêu chí đánh giá chất lượng câu trả lời}
+
+Ngoài retrieval, chất lượng câu sinh ra có thể xét năm tiêu chí định tính:
+
+\begin{enumerate}
+    \item \textbf{Căn cứ:} mọi khẳng định pháp lý có Điều trong danh sách citation
+    và Điều đó mở được.
+    \item \textbf{Chính xác:} không mâu thuẫn nội dung Điều đã dẫn.
+    \item \textbf{Đầy đủ:} không bỏ điều kiện quan trọng (ví dụ loại công việc
+    khi nói thử việc).
+    \item \textbf{Thực tiễn:} câu trả lời dùng được cho DNNVV, không chỉ nhắc
+    nguyên tắc chung.
+    \item \textbf{Rõ ràng:} tiếng Việt mạch lạc, không trộn thuật ngữ sai.
+\end{enumerate}
+
+Đồ án chấm các tiêu chí này bằng kịch bản chạy tay (thử việc / câu ngoài miền /
+câu ngoài corpus), chưa dùng LLM-as-a-judge trên bộ lớn. Hậu kiểm tự động mới
+bắt tiêu chí căn cứ ở mức số Điều.
+
+\section{Độ trễ quan sát}
+
+Tra cứu FTS trên máy thử nghiệm trả dưới một giây với truy vấn ngắn. Hỏi đáp phụ
+thuộc mạng tới Gemini: thường vài giây đến hơn mười giây, chấp nhận được nhờ SSE
+hiển thị tiến độ. Soát xét hợp đồng vài trang chạy nền, UI poll 2,5 giây không
+chặn trang khác. Nhúng lại toàn corpus trên gói miễn phí có thể kéo dài và gặp
+429; backoff là bắt buộc.
+
+\section{Tính sẵn sàng khi thiếu mô hình}
+
+Kịch bản cố ý không gắn khóa: \texttt{/health} 200, đăng nhập được, \texttt{GET
+/laws} đủ \soLuat{} văn bản, tìm không dấu chạy, lịch sinh task, upload txt 201.
+Chỉ \texttt{/legal/chat/stream} và soát xét cần LLM trả 503 hoặc failed. Đây là
+tiêu chí sẵn sàng đã đặt ở yêu cầu phi chức năng.
+
+\section{Rủi ro đánh giá}
+
+Bộ test tự động không chứng minh mô hình luôn dẫn đúng Điều trên mọi câu hỏi
+thật. Smoke Docker phụ thuộc dữ liệu corpus hiện tại; đổi file JSON thì số hit
+``thue gtgt'' có thể đổi. Đánh giá giao diện định tính, mẫu nhỏ. Các giới hạn
+này được nêu để không suy diễn quá số liệu \soTest{} test.

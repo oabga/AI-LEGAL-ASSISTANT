@@ -1,0 +1,126 @@
+\section{Mười hai nghĩa vụ tuân thủ và cách sinh lịch}
+
+\boncau
+{Bộ \soRule{} bản ghi khai báo trong mã (\texttt{COMPLIANCE\_RULES}): mã, tiêu đề,
+tần suất, hạn chót, \texttt{applies\_to}, \texttt{legal\_refs} trỏ Điều trong corpus.}
+{DNNVV cần nhắc mốc thuế, BHXH, lao động, BCTC. LLM không được suy hạn nộp ---
+dễ bịa ngày.}
+{Bộ sinh đọc hồ sơ tổ chức, tạo task cửa sổ 3 tháng trước + 12 tháng tới.
+\texttt{INSERT \ldots ON CONFLICT DO NOTHING} theo (công ty, rule, kỳ).}
+{Lúc đăng ký/cập nhật hồ sơ và khi user bấm sinh lại. Không chạy khi chưa gắn
+tổ chức. Luật đổi hạn: sửa rule trong mã, không chờ mô hình nhớ.}
+
+Mỗi mục dưới đây: nghĩa vụ là gì, công thức hạn trong mã, và khi nào rule được
+lọc vào hồ sơ.
+
+\subsection{VAT\_MONTHLY --- khai nộp GTGT theo tháng}
+
+Áp dụng khi hồ sơ khai \texttt{vat\_period = monthly}. Hạn: ngày 20 của tháng
+liền sau tháng phát sinh, theo hướng Điều 44 Luật Quản lý thuế (hồ sơ khai) và
+Điều 55 (thời hạn nộp tiền) số 38/2019/QH14. \texttt{due\_day} $= 20$,
+\texttt{due\_month\_offset} $= 1$.
+
+Doanh nghiệp nhỏ thường được chọn quý; rule tháng tồn tại vì một số đơn vị vẫn
+kê khai tháng, và vì demo cần thấy khác biệt khi đổi hồ sơ.
+
+\subsection{VAT\_QUARTERLY --- khai nộp GTGT theo quý}
+
+Áp dụng \texttt{vat\_period = quarterly}. Hạn được mã hoá ngày cuối tháng đầu
+quý sau (\texttt{due\_day} $= 31$ kết hợp offset một tháng, bộ sinh kẹp theo số
+ngày thật của tháng). Căn cứ: Điều 44 Luật Quản lý thuế và Điều 8 Nghị định
+126/2020/NĐ-CP. Đây là rule người dùng DNNVV gặp nhiều nhất trên lịch.
+
+\subsection{CIT\_PROVISIONAL --- tạm nộp thuế TNDN theo quý}
+
+Mọi tổ chức trong phạm vi đồ án. Hạn ngày 30 tháng đầu quý sau. Rule nhấn:
+không phát sinh hồ sơ khai tạm tính quý, chỉ nghĩa vụ tiền. Căn cứ Điều 55 Luật
+Quản lý thuế và Điều 8 Nghị định 126/2020/NĐ-CP. Nhầm lẫn thường gặp là coi tạm
+nộp như một tờ khai --- mô tả rule ghi rõ để UI không gọi là ``khai quý TNDN''.
+
+\subsection{CIT\_FINALIZATION --- quyết toán TNDN năm}
+
+Hạn ngày cuối tháng thứ ba sau khi kết thúc năm dương lịch
+(\texttt{due\_fixed\_month} $= 3$, \texttt{due\_day} $= 31$). Căn cứ Điều 44 Luật
+Quản lý thuế và Điều 12 Luật Thuế TNDN 14/2008/QH12 (kho còn số hiệu này; luật
+mới cùng chủ đề được nạp riêng, rule chưa tự chuyển). Năm tài chính khác dương
+lịch chưa tham số hoá --- hạn chế phạm vi.
+
+\subsection{PIT\_FINALIZATION --- quyết toán TNCN năm}
+
+Chỉ khi \texttt{min\_employees} $\ge 1$. Tổ chức trả thu nhập quyết toán thay
+người lao động, hạn cùng cửa sổ tháng thứ ba. Căn cứ Điều 44 Luật Quản lý thuế
+và Điều 24 Luật Thuế TNCN 04/2007/QH12. Công ty không có lao động không thấy
+task này.
+
+\subsection{BUSINESS\_LICENSE\_FEE --- lệ phí môn bài}
+
+Hạn 30 tháng 01 hằng năm. Căn cứ Điều 5 Nghị định 139/2016/NĐ-CP và Điều 10
+Nghị định 126/2020/NĐ-CP. Rule không tính số tiền theo vốn điều lệ --- đồ án
+nhắc hạn, không thay phần mềm thuế.
+
+\subsection{SOCIAL\_INSURANCE\_MONTHLY --- đóng BHXH hằng tháng}
+
+Khi có ít nhất một lao động. Hạn ngày cuối tháng đang diễn ra
+(\texttt{due\_month\_offset} $= 0$, \texttt{due\_day} $= 31$ kẹp cuối tháng).
+Căn cứ Điều 34 Luật BHXH 41/2024/QH15 và Điều 4 Nghị định 58/2020/NĐ-CP (quỹ
+tai nạn lao động). Tỷ lệ đóng không nằm trong rule; người dùng hỏi tỷ lệ thì
+đi pipeline RAG, không đi lịch.
+
+\subsection{LABOUR\_REPORT\_H1 và H2 --- báo cáo tình hình lao động}
+
+Hai rule cùng căn cứ Điều 12 Bộ luật Lao động 45/2019/QH14 và Điều 4 Nghị định
+145/2020/NĐ-CP, khác tháng: trước 05/06 và trước 05/12. Lọc
+\texttt{min\_employees} $\ge 1$. Tách H1/H2 thay vì một rule ``hai lần/năm''
+để task hiện thành hai mốc trên lịch tháng, dễ đánh dấu độc lập.
+
+\subsection{LABOUR\_SAFETY\_REPORT --- báo cáo an toàn vệ sinh lao động}
+
+Khi \texttt{min\_employees} $\ge 10$. Hạn 10 tháng 01 năm sau. Căn cứ Điều 81
+Luật An toàn, vệ sinh lao động 84/2015/QH13. Ngưỡng 10 lao động là điều kiện
+lọc trong mã, phản ánh hướng tập trung DNNVV có quy mô đủ để nghĩa vụ báo cáo
+này trở nên thường gặp; khi văn bản đổi ngưỡng phải sửa \texttt{applies\_to}.
+
+\subsection{FINANCIAL\_STATEMENT --- báo cáo tài chính năm}
+
+Mọi tổ chức. Hạn mã hoá cuối tháng 3 (90 ngày sau 31/12 với năm dương lịch).
+Căn cứ Điều 29 Luật Kế toán 88/2015/QH13 và Điều 80 Thông tư 133/2016/TT-BTC
+(chế độ kế toán DNNVV). Nộp cơ quan thuế và thống kê được nêu trong mô tả;
+hệ thống không tạo hai task tách cơ quan.
+
+\subsection{INVOICE\_USAGE\_CHECK --- rà soát hóa đơn điện tử}
+
+Rule quý, hạn ngày 15 tháng đầu quý sau: đây là \textbf{mốc nội bộ} nhắc rà
+soát việc lập, gửi, lưu hóa đơn theo Nghị định 123/2020/NĐ-CP Điều 9 và Thông
+tư 78/2021/TT-BTC Điều 6, không phải một tờ khai riêng có số hiệu thống nhất
+như GTGT. Mục đích: kéo người dùng từ lịch sang tra cứu/hỏi đáp khi sắp đến
+kỳ, chứ không tự đối soát dữ liệu tổng cục thuế.
+
+\subsection{Bảng tổng hợp rule}
+
+\begin{table}[htp]
+\centering
+\caption{\soRule{} rule tuân thủ: tần suất và điều kiện lọc.}
+\label{tab:12-rule}
+\begin{tabular}{p{3.6cm}p{2.2cm}p{2.4cm}p{5.2cm}}
+\toprule
+\textbf{Mã} & \textbf{Tần suất} & \textbf{Lọc hồ sơ} & \textbf{Hướng hạn trong mã} \\
+\midrule
+VAT\_MONTHLY & Tháng & Kỳ GTGT tháng & Ngày 20 tháng sau \\
+VAT\_QUARTERLY & Quý & Kỳ GTGT quý & Cuối tháng đầu quý sau \\
+CIT\_PROVISIONAL & Quý & Không & Ngày 30 tháng đầu quý sau \\
+CIT\_FINALIZATION & Năm & Không & Cuối tháng 3 \\
+PIT\_FINALIZATION & Năm & Có NLĐ & Cuối tháng 3 \\
+BUSINESS\_LICENSE\_FEE & Năm & Không & 30 tháng 01 \\
+SOCIAL\_INSURANCE\_MONTHLY & Tháng & Có NLĐ & Cuối tháng \\
+LABOUR\_REPORT\_H1 & Năm & Có NLĐ & 05 tháng 6 \\
+LABOUR\_REPORT\_H2 & Năm & Có NLĐ & 05 tháng 12 \\
+LABOUR\_SAFETY\_REPORT & Năm & $\ge$ 10 NLĐ & 10 tháng 01 năm sau \\
+FINANCIAL\_STATEMENT & Năm & Không & Cuối tháng 3 \\
+INVOICE\_USAGE\_CHECK & Quý & Không & Ngày 15 tháng đầu quý sau \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Người dùng đổi số lao động hoặc kỳ GTGT rồi bấm sinh lại: task tương lai theo
+rule mới xuất hiện; task quá khứ đã đánh dấu xong giữ nguyên. Không dùng LLM để
+``đoán'' hạn nộp --- sai một ngày là sai nghiệp vụ.

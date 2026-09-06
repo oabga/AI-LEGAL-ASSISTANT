@@ -1,0 +1,26 @@
+\section*{Phụ lục I. Quy trình nạp corpus và lập chỉ mục}
+
+Nạp chữ vào Postgres tách khỏi nhúng vector. \texttt{scripts/load\_postgres.py}
+đọc JSON Điều, ghi \texttt{legal\_knowledge\_records} (tuỳ chọn
+\texttt{--truncate}). Generated column tự tính số Điều và tsvector. Tra cứu dùng
+ngay sau bước này, không cần khóa Gemini.
+
+Nhúng: lúc khởi động hoặc khi quản trị bấm reindex, hệ thống đọc từng Điều, gọi
+embedding theo lô 64 bản ghi, ghi vào Chroma, rồi ghi manifest (mô hình, số
+chiều, số vector). Khác mô hình hoặc khác chiều so với
+manifest: bắt buộc nhúng lại. Thiếu khóa: bỏ qua nhúng, \texttt{/health} vẫn 200.
+
+BM25: tách từ, cache đĩa theo tokenizer. Không nhầm cache BM25 với volume
+Chroma.
+
+Thứ tự an toàn khi máy trắng: Compose up, đợi health, load\_postgres, restart
+backend, (nếu có khóa) reindex trên admin. Đảo thứ tự (reindex trước khi có
+hàng Postgres) cho chỉ mục rỗng hoặc lệch id.
+
+\section*{Phụ lục J. Ràng buộc đạo đức và trách nhiệm sử dụng}
+
+Hệ thống hỗ trợ thông tin trên kho đóng. Không thay thế luật sư, đại lý thuế,
+hoặc cơ quan nhà nước. Người dùng phải mở Điều gốc trước khi hành động có hậu
+quả pháp lý. Nhật ký hội thoại chứa câu hỏi doanh nghiệp --- triển khai thật
+cần chính sách lưu trữ và quyền xóa (đồ án mới có xóa hội thoại theo chủ sở
+hữu). Không thu thập dữ liệu cá nhân ngoài tài khoản thử nghiệm.

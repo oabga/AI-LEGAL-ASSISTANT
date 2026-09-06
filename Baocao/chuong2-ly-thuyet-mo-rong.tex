@@ -1,0 +1,70 @@
+\section{Các khái niệm nền gắn với tiếng Việt và kho luật}
+
+\subsection{Tách từ và hai lớp token}
+
+Tiếng Việt viết cách âm tiết, không cách từ. ``Lao động'' là một từ, hai âm
+tiết. Nếu BM25 đếm ``lao'' và ``động'' riêng, độ hiếm của từ bị loãng và Điều
+đúng dễ bị Điều khác lấn. Đồ án tách từ bằng \texttt{underthesea} khi dựng chỉ
+mục BM25. Kênh nhúng và mô hình sinh dùng cách tách của nhà cung cấp (subword).
+Hai lớp token khác nhau; đồ án chấp nhận và không ép một tokenizer cho cả hai.
+
+\boncau
+{Đơn vị chữ đưa vào BM25 (từ tiếng Việt) khác đơn vị chữ đưa vào mô hình sinh
+(subword).}
+{Không tách từ thì BM25 yếu trên kho luật, vì nhiều cụm hai âm tiết.}
+{Tách lúc dựng cache BM25. Embedding không dùng kết quả underthesea.}
+{Mỗi lần lập hoặc làm mới chỉ mục chữ. Không chạy trên trang tra cứu FTS.}
+
+\subsection{Từ phổ biến và độ hiếm}
+
+Văn bản luật lặp ``Điều'', ``khoản'', ``quy định''. Người dùng vẫn hay gõ
+``Điều~25''. Đồ án không tự soạn danh sách từ dừng riêng cho pháp lý: BM25 đã
+hạ điểm những từ xuất hiện ở quá nhiều Điều (IDF). Giữ nguyên ``Điều'' giúp câu
+có số hiệu không bị mất tín hiệu.
+
+\subsection{Người tìm, máy đọc}
+
+Người dùng DNNVV không chọn trước Chương nào để máy đọc. Hệ thống phải tự tìm
+vài Điều, rồi mới viết câu~\cite{karpukhin2020dpr}. Đồ án: kênh tìm là BM25 cộng
+Chroma; kênh đọc là mô hình sinh câu, không phải mô hình khoanh một đoạn kiểu
+đề thi đọc hiểu. Một câu thuế thường cần hơn một Điều.
+
+Trang \texttt{/laws} chỉ tìm và hiện chữ, không gọi kênh đọc.
+
+\subsection{Bịa nội dung}
+
+Mô hình vẫn có thể viết điều không có trong ngữ cảnh, hoặc không có thật. Ở
+đây dạng nguy hiểm nhất là bịa số Điều hoặc bịa mức phạt. Đồ án chặn bằng ba
+lớp: bắt buộc có ngữ cảnh đã tìm; lời nhắc cấm bịa; sau khi viết xong chỉ giữ
+số Điều thuộc tập vừa tìm. Diễn giải sai trên Điều đúng thì ba lớp này không
+bắt --- hạn chế Chương~5.
+
+\subsection{Cửa sổ ngữ cảnh và nhiệt độ}
+
+Mô hình nhìn các token trong một cửa sổ có hạn; chi phí tăng nhanh khi chuỗi
+dài~\cite{vaswani2017}. Đó là lý do không nhét cả kho \soDieu{} Điều vào một
+lời nhắc, mà cắt còn 8 Điều sau lọc. Nhiệt độ chỉnh mức ``mạo hiểm'' khi chọn
+chữ tiếp theo. Đồ án để nhiệt độ 0 khi viết câu, để cùng một câu hỏi và cùng
+một tập Điều cho ra lời diễn giải ổn định hơn.
+
+Đồ án không cài mạng Transformer: gọi API đã huấn luyện. Cổng sinh
+(\texttt{LLM\_MODEL}) tách khỏi cổng nhúng (\texttt{EMBEDDINGS\_MODEL}).
+
+\subsection{Độ chính xác, độ phủ và cách đánh giá}
+
+Trong truy hồi thông tin, độ chính xác hỏi ``trong các Điều đưa ra, bao nhiêu
+Điều đúng''; độ phủ hỏi ``trong các Điều đáng ra phải tìm, máy giữ được bao
+nhiêu''. Đồ án thiết kế phễu $60 \to 8$ theo hướng độ phủ: bỏ sót hại hơn lấy
+thừa. Chương~4 không công bố $F_2$, MRR hay ROUGE trên bộ nhãn nội bộ --- chưa
+gắn nhãn đủ lớn. Việc đánh giá sản phẩm là chạy cụm Docker và đối chiếu Điều
+gốc bằng tay.
+
+\section{Xác thực, ủy quyền và ba lớp phần mềm}
+
+Hội thoại và hợp đồng không được nhìn chéo giữa hai công ty. Đổi giao diện không
+được đụng công thức RRF. Đồ án tách ba lớp: trình bày (React), nghiệp vụ
+(FastAPI, pipeline), dữ liệu (PostgreSQL, Chroma)~\cite{thanh2024}. Xác thực
+trả lời ``ai đang gọi''; ủy quyền trả lời ``được làm gì''. JWT đi kèm kiểm vai
+trò và cách ly theo \texttt{user\_id} / \texttt{organization\_id}. Khi đoán định
+danh hội thoại người khác, API trả 404 chứ không 403, để khỏi lộ tài nguyên
+đang tồn tại. HTTPS chưa bật trong Compose nội bộ.

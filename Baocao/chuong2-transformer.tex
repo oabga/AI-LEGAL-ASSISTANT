@@ -1,0 +1,79 @@
+% KHÔNG \input file này: attention / encoder-decoder dễ trùng bài viết Vaswani
+% và blog mô hình. Chương 2 đã nói cửa sổ ngữ cảnh và nhiệt độ bằng ví dụ kho luật.
+
+\section{Transformer, attention và mô hình nhúng --- mức đủ dùng}
+
+Đồ án không huấn luyện Transformer. Mục này giải thích vừa đủ để lý giải các
+tham số đã chọn (cửa sổ ngữ cảnh, nhiệt độ, số chiều embedding).
+
+\subsection{Cơ chế attention}
+
+Với một chuỗi token, attention tính trọng số: token hiện tại ``nhìn'' các vị trí
+khác nhiều hay ít. Self-attention trong một lớp cho phép quan hệ xa (chủ ngữ
+đầu câu với động từ cuối câu) tốt hơn mạng hồi quy thuần. Đa đầu (multi-head)
+học nhiều kiểu quan hệ song song. Stack nhiều lớp tạo mô hình sâu~\cite{vaswani2017}.
+
+Hệ quả thực tiễn: chi phí attention tăng theo bình phương độ dài chuỗi. Vì vậy
+không nhét \soDieu{} Điều vào một prompt. Pipeline đồ án cắt còn $k=8$ sau lọc.
+
+\subsection{Mô hình mã hoá và mô hình giải mã}
+
+Encoder (BERT-style) đọc hai chiều, hợp câu phân loại và nhúng. Decoder
+(GPT-style) sinh token trái sang phải, hợp hội thoại. Embedding API thường là
+encoder hoặc biến thể. Gemini flash dùng khi sinh câu là decoder. Trộn nhầm
+``một mô hình làm cả hai cổng'' dễ dẫn tới gọi sai endpoint: đồ án tách
+\texttt{LLM\_MODEL} và \texttt{EMBEDDINGS\_MODEL}.
+
+\subsection{Học biểu diễn phân tán}
+
+Word2Vec gán mỗi từ một vector tĩnh, không phân biệt ``đóng'' (bảo hiểm) và
+``đóng'' (cửa). Mô hình ngữ cảnh (contextual) gán vector theo câu. Embedding
+Điều của đồ án là vector cả đoạn, không phải trung bình word2vec. Đó là lý do
+cần API nhúng hiện đại, không tự huấn luyện skip-gram trên 38 luật (quá ít dữ
+liệu, không bắt được ``sa thải'' $\leftrightarrow$ ``đơn phương chấm dứt'' nếu
+cặp không đồng xuất hiện đủ).
+
+\subsection{Nhiệt độ, top-p, số token tối đa}
+
+Nhiệt độ nhân vào logits trước softmax. Top-p (nucleus) cắt đuôi phân bố. Đồ án
+giữ nhiệt độ 0, không chỉnh top-p trên sản phẩm, ưu tiên ổn định diễn giải.
+\texttt{max\_tokens} 4096 đủ một câu tư vấn kèm gạch đầu dòng, không đủ để mô
+hình chép cả chương luật --- vốn không mong muốn.
+
+\subsection{Hallucination dưới góc xác suất}
+
+Mô hình tối ưu likelihood token, không tối ưu ``đúng Điều 44''. Khi ngữ cảnh
+mỏng, phân bố vẫn gán xác suất cao cho các số hiệu hay gặp trong dữ liệu huấn
+luyện. RAG tăng xác suất các token nằm trong đoạn đã nhét, nhưng không đưa về
+không. Hậu kiểm citation là lớp xác định (deterministic) bù cho lớp xác suất.
+
+\section{Truy hồi lai: vì sao không chỉ một kênh}
+
+\subsection{Thất bại điển hình của từng kênh}
+
+BM25 thất bại khi từ vựng lệch hoàn toàn (sa thải / đơn phương). Dense thất bại
+khi truy vấn là số hiệu hoặc cụm cực ngắn, và khi hai Điều kề nhau nội dung na
+ná (cùng chương thuế). RRF không sửa nội dung Điều; RRF chỉ tăng xác suất Điều
+đúng có mặt trong union hai danh sách.
+
+\subsection{Tham số $k$ trước và sau gộp}
+
+Lấy $k_{\mathrm{RRF}}=60$ rồi cắt 8 là phễu: rộng lúc hợp nhất, hẹp lúc nhét
+prompt. Quá hẹp lúc BM25/Chroma thì RRF không có gì để gộp. Quá rộng lúc prompt
+thì filter và generate đắt, mô hình lạc. Con số 8 là thỏa hiệp cửa sổ và quan
+sát tay, không phải cực trị trên tập nhãn.
+
+\subsection{Cache BM25}
+
+Tách từ \soDieu{} Điều tốn thời gian khởi động. Cache theo vân tay tokenizer:
+đổi underthesea hoặc corpus thì tính lại. Không cache Chroma cùng file này vì
+Chroma đã là chỉ mục trên đĩa volume.
+
+\section{Kiến trúc REST, tài nguyên và idempotency}
+
+Idempotent: gọi lại cùng request không đổi kết quả ngoài lần đầu (GET, PUT,
+DELETE lý tưởng). POST generate lịch được viết idempotent theo (rule, kỳ, tổ
+chức): đây là POST có ngữ nghĩa ``đảm bảo tồn tại'', gần PUT. Chat POST không
+idempotent: mỗi lần một tin nhắn mới. Phân biệt này giải thích vì sao retry
+client được phép trên generate lịch mà phải hỏi người dùng trước khi gửi lại
+câu chat (tránh nhân đôi câu hỏi --- tuy câu hỏi đã persist theo id).

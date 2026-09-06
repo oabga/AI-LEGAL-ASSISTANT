@@ -1,7 +1,7 @@
-"""Lab endpoint: chạy tập test cuộc thi, giữ nguyên format results.json.
+"""API chạy hàng loạt câu hỏi (chỉ admin).
 
-Tách khỏi router chat của sản phẩm và yêu cầu role admin. Format output được
-giữ nguyên để chương 4 khóa luận vẫn dùng lại được số liệu thi đấu.
+Tách khỏi router chat của sản phẩm. Dùng để kiểm tra pipeline trên một danh sách
+câu JSON: bỏ qua phân tích ý định, không gắn lịch sử hội thoại.
 """
 from __future__ import annotations
 
@@ -171,7 +171,7 @@ async def answer_competition_stream(
         yield pack(
             "status",
             {
-                "message": "Bắt đầu competition mode",
+                "message": "Bắt đầu chạy hàng loạt",
                 "stage": "competition",
                 "status": "started",
                 "elapsed_ms": 0,
@@ -195,7 +195,7 @@ async def answer_competition_stream(
                     yield pack(
                         "status",
                         {
-                            "message": f"Đang chạy competition mode ({completed}/{total} câu xong)",
+                            "message": f"Đang chạy hàng loạt ({completed}/{total} câu xong)",
                             "stage": "competition",
                             "status": "running",
                             "elapsed_ms": round((perf_counter() - started) * 1000),
@@ -218,7 +218,7 @@ async def answer_competition_stream(
             yield pack(
                 "done",
                 {
-                    "message": "Hoàn tất competition mode",
+                    "message": "Hoàn tất chạy hàng loạt",
                     "stage": "competition",
                     "status": "completed",
                     "elapsed_ms": round((perf_counter() - started) * 1000),
@@ -246,7 +246,7 @@ async def answer_competition_stream(
             yield pack(
                 "error",
                 {
-                    "message": f"Lỗi competition mode: {exc}",
+                    "message": f"Lỗi chạy hàng loạt: {exc}",
                     "stage": "competition",
                     "status": "error",
                     "elapsed_ms": round((perf_counter() - started) * 1000),
@@ -313,7 +313,7 @@ async def answer_batch(
     request: CompetitionBatchRequest,
     agent: LegalAssistantAgent = Depends(get_legal_assistant_agent),
 ) -> CompetitionBatchResponse:
-    """Trả lời nhiều câu hỏi, phù hợp khi chạy tập test của cuộc thi."""
+    """Trả lời nhiều câu hỏi trong một lần gọi (quản trị)."""
 
     results = [await agent.answer(item) for item in request.items]
     return CompetitionBatchResponse(results=results)

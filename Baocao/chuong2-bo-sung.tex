@@ -1,0 +1,353 @@
+% KHÔNG \input file này: diễn giải HTTP/RFC gần tài liệu chuẩn, dễ trùng Turnitin.
+
+\section{Nền tảng giao thức web và trao đổi dữ liệu}
+
+Các mục trước tập trung NLP và truy hồi. Hệ thống đồ án còn là ứng dụng web:
+trình duyệt nói chuyện với FastAPI bằng HTTP, dữ liệu đi JSON hoặc SSE, xác thực
+đi header. Mục này giải thích các khái niệm đó ở mức đủ để đọc Chương~3 mà không
+cần tài liệu ngoài, rồi gắn từng khái niệm với chỗ dùng trong sản phẩm.
+
+\subsection{HTTP}
+
+HTTP (Hypertext Transfer Protocol) là giao thức tầng ứng dụng: client gửi yêu
+cầu, server trả đáp. Một yêu cầu gồm phương thức (GET, POST, PUT, PATCH, DELETE,
+OPTIONS), đường dẫn, phiên bản, header và (tuỳ phương thức) thân. Đáp gồm mã
+trạng thái, header và thân. HTTP không giữ trạng thái giữa hai request: mỗi lần
+gọi độc lập, trừ khi ứng dụng tự mang ngữ cảnh (cookie, token)~\cite{rfc9110}.
+
+Đồ án không tự cài stack TCP. FastAPI và trình duyệt đã nói HTTP. Việc của đồ án
+là chọn đúng phương thức và mã:
+
+\begin{itemize}
+    \item GET đọc tài nguyên (danh mục luật, cây Điều, hội thoại). Lặp GET không
+    được làm đổi dữ liệu.
+    \item POST tạo (đăng ký, tin nhắn, tải tệp, sinh lịch).
+    \item PATCH sửa một phần (đổi tên hội thoại, đánh dấu task).
+    \item DELETE xóa hội thoại hoặc tài liệu của đúng chủ sở hữu.
+    \item OPTIONS xuất hiện khi trình duyệt hỏi CORS trước POST khác origin.
+\end{itemize}
+
+HTTPS là HTTP đi trên TLS: mã hoá đường truyền, xác thực máy chủ bằng chứng thư.
+Compose nội bộ dùng HTTP thuần vì các container nằm trên một máy. Khi đưa hệ
+thống ra Internet, TLS phải đặt trước nginx; JWT trên HTTP thường dễ bị nghe lén.
+
+Phiên bản HTTP/1.1 giữ kết nối (keep-alive) để nhiều request dùng một TCP.
+SSE của đồ án dựa đúng cơ chế này: một GET/POST dài, server lần lượt ghi từng
+dòng \texttt{data:} mà không đóng socket.
+
+\subsection{Mã trạng thái HTTP dùng trong đồ án}
+
+Mã chia nhóm: 2xx thành công, 4xx lỗi phía client, 5xx lỗi phía server. Đồ án
+không dùng hết bảng mã RFC, chỉ một tập có nghĩa nghiệp vụ:
+
+\begin{itemize}
+    \item 200: đọc thành công.
+    \item 201: tạo tài nguyên (ví dụ tài liệu sau khi tải).
+    \item 202: đã nhận việc chạy nền (soát xét hợp đồng); client phải poll.
+    \item 204: thành công không thân (ít dùng).
+    \item 400: dữ liệu hợp lệ schema nhưng sai nghiệp vụ.
+    \item 401: thiếu hoặc hỏng token.
+    \item 403: đã xác thực nhưng không đủ quyền admin.
+    \item 404: không có tài nguyên \emph{hoặc} không được xem tài nguyên người
+    khác (cố ý không trả 403 để khỏi dò tồn tại hội thoại).
+    \item 409: xung đột, ví dụ mã số thuế trùng.
+    \item 422: Pydantic từ chối schema.
+    \item 429: vượt slowapi.
+    \item 503: hỏi đáp khi chưa có chỉ mục vector hoặc thiếu khóa mô hình.
+\end{itemize}
+
+Việc gắn mã này không phải hình thức. Client TanStack Query phân nhánh theo mã:
+401 thì làm mới token; 503 thì hiện chữ ``chưa sẵn sàng'' chứ không vẽ stack
+trace.
+
+\subsection{JSON}
+
+JSON (JavaScript Object Notation) là định dạng văn bản: đối tượng
+\texttt{\{khoá: giá trị\}}, mảng, chuỗi, số, boolean, null~\cite{rfc8259}. JSON
+không có kiểu ngày tháng riêng; đồ án đưa thời điểm dạng ISO-8601 chuỗi. JSON
+không có comment. FastAPI và Pydantic xuất/nhập JSON mặc định.
+
+Ưu điểm so với XML trong đồ án: gọn, khớp sẵn JavaScript/TypeScript, đủ cho schema
+hội thoại và finding hợp đồng. Nhược: không có namespace; số lớn phải cẩn thận vì
+IEEE-754 phía JS. Mã số thuế và số Điều được giữ kiểu chuỗi khi cần tránh mất số 0
+đầu.
+
+Mọi API REST của đồ án trả JSON, trừ luồng SSE (text/event-stream) và tải tệp
+(multipart). Lỗi cũng JSON: trường \texttt{detail}.
+
+\subsection{CORS}
+
+Trình duyệt áp chính sách cùng nguồn (same-origin): một trang
+\texttt{http://localhost:5173} không được đọc đáp từ
+\texttt{http://localhost:8023} trừ khi server đích cho phép qua CORS
+(Cross-Origin Resource Sharing). Cơ chế: trình duyệt gửi OPTIONS (preflight) kèm
+\texttt{Origin}, \texttt{Access-Control-Request-Method}; server trả
+\texttt{Access-Control-Allow-Origin} và các header cho phép.
+
+Đồ án khoá CORS theo danh sách origin cấu hình, không dùng \texttt{*}, vì
+\texttt{*} không đi cùng \texttt{Authorization} một cách an toàn. Trên Docker,
+nginx phục vụ SPA và proxy \texttt{/api} cùng origin nên preflight gần như không
+chạy. CORS chủ yếu phục vụ máy phát triển: Vite cổng 5173, API cổng 8023.
+
+\subsection{Unicode, UTF-8 và tiếng Việt}
+
+Unicode gán mỗi ký tự một mã điểm. UTF-8 mã hoá mã điểm thành một đến bốn byte,
+tương thích ASCII. Tiếng Việt (dấu thanh, đ, ơ) nằm trong dải Latin mở rộng.
+Mọi lớp đồ án (Postgres, JSON, React, tệp corpus) dùng UTF-8. Sai encoding làm
+vỡ dấu trên Điều luật --- lỗi người dùng phát hiện ngay.
+
+Tìm kiếm không dấu không phải ``bỏ Unicode''. Đồ án giữ bản UTF-8 đầy đủ để hiển
+thị, đồng thời tạo bản đã \texttt{unaccent} chỉ để lập chỉ mục. Hai bản phải cùng
+một Điều; nếu lệch, highlight trên UI sẽ trỏ sai vị trí ký tự.
+
+\subsection{Biểu thức chính quy}
+
+Biểu thức chính quy (regular expression) mô tả mẫu chuỗi. Đồ án dùng regex ở
+vài chỗ hẹp: fallback tách từ khi underthesea không nạp; nhận số Điều trong câu
+hỏi; kiểm tra định dạng mã số thuế ở mức hình thức. Regex không thay parser
+luật. Văn bản quy phạm có cấu trúc Chương--Điều, không phải bài toán ``tìm mọi
+chuỗi giống luật'' bằng một mẫu.
+
+Lạm dụng regex trên HTML hoặc trên toàn bộ PDF thường mong manh. Vì vậy trích
+hợp đồng dùng thư viện PDF/DOCX, không dùng một regex ``lấy điều khoản''.
+
+\section{Luồng thực thi máy chủ: đồng bộ, bất đồng bộ, ASGI}
+
+\subsection{I/O chờ mạng}
+
+Một yêu cầu hỏi đáp phần lớn thời gian là chờ: nhúng vector, gọi Gemini, đọc
+Postgres, đọc Chroma. Nếu mỗi request chiếm một luồng hệ điều hành và ngủ khi
+chờ, số kết nối đồng thời bị giới hạn nhanh. Mô hình bất đồng bộ
+(\texttt{async}/\texttt{await}) nhả vòng sự kiện khi chờ I/O, phục vụ request
+khác trên cùng tiến trình.
+
+Đồ án: router FastAPI và SQLAlchemy async. Riêng truy hồi lai (BM25 + Chroma) là
+mã đồng bộ nặng CPU/I/O đĩa, nên được đẩy sang luồng phụ
+(\texttt{asyncio.to\_thread}) để heartbeat SSE không bị nghẽn.
+
+\subsection{WSGI và ASGI}
+
+WSGI là giao diện đồng bộ cổ điển giữa máy chủ Python và ứng dụng (Flask, Django
+truyền thống). ASGI bổ sung sự kiện bất đồng bộ và WebSocket/SSE. FastAPI chạy
+trên ASGI (Uvicorn/Starlette)~\cite{fastapi}. Nếu gắn FastAPI vào máy chủ WSGI
+thuần, SSE và \texttt{async} mất ý nghĩa.
+
+\subsection{OpenAPI}
+
+OpenAPI mô tả API bằng JSON/YAML: đường, phương thức, schema, mã lỗi. FastAPI
+sinh OpenAPI từ chữ ký hàm và Pydantic; giao diện Swagger tại \texttt{/docs} dùng
+khi trình bày và khi frontend đối chiếu tên trường. Đồ án không sinh client từ
+OpenAPI tự động (chưa cần codegen); TypeScript viết tay bám schema.
+
+\section{Tầng trình duyệt: Node.js, npm, CSS, SPA}
+
+\subsection{JavaScript, ECMAScript và môi trường thực thi}
+
+JavaScript là ngôn ngữ của trình duyệt. ECMAScript là chuẩn ngôn ngữ. Node.js
+chạy JavaScript phía máy phát triển: cài gói, chạy Vite, chạy Vitest. Sản phẩm
+Docker frontend \emph{không} chạy Node khi phục vụ người dùng: chỉ nginx và tệp
+tĩnh đã build. Phân biệt này tránh nhầm ``React cần Node trên server''.
+
+\subsection{npm}
+
+npm là trình quản lý gói hệ sinh thái Node. \texttt{package.json} khai báo phụ
+thuộc; \texttt{package-lock.json} khóa phiên bản. Đồ án cài React, Vite, Tailwind,
+TanStack Query, Zustand, React Router, Axios, Vitest qua npm. Không cam kết thư
+mục \texttt{node\_modules} vào báo cáo hay image thừa: image frontend đa giai
+đoạn, giai đoạn cuối chỉ còn bản build.
+
+\subsection{Mô hình hộp CSS}
+
+Mọi phần tử HTML là một hộp: nội dung, padding, border, margin. Flexbox và Grid
+sắp xếp hộp theo hàng/cột. Tailwind không thay mô hình hộp; Tailwind chỉ là cách
+gắn utility class thay vì viết bộ chọn CSS dài. Đồ án chọn Tailwind để giữ giao
+diện trong JSX, giảm file CSS toàn cục, phù hợp một người làm cả frontend.
+
+\subsection{Virtual DOM và reconciliation}
+
+React giữ cây mô tả giao diện (element) và đối chiếu với lần render trước để
+vá DOM thật tối thiểu~\cite{react}. Khi token SSE tới, đồ án cộng chuỗi vào
+state tin nhắn; React re-render khung chat. Nếu ghi thẳng vào
+\texttt{innerHTML} từng token, dễ lệch trạng thái và mất kiểm soát XSS.
+
+\subsection{Bundle, tree-shaking và code splitting}
+
+Vite/Rollup gom module thành tệp nhỏ hơn, loại mã không được import
+(tree-shaking). Route quản trị \texttt{lazy()} tách bundle: người không vào
+admin không tải mã lab. SPA vẫn phải tải runtime React lần đầu; chấp nhận được
+vì đối tượng là nhân sự/kế toán sau đăng nhập, không phải trang marketing.
+
+\section{Cơ sở dữ liệu quan hệ: giao dịch, chỉ mục, nhóm kết nối}
+
+\subsection{Mô hình quan hệ và toàn vẹn}
+
+CSDL quan hệ tổ chức dữ liệu thành bảng, cột, khóa chính, khóa ngoại. Toàn vẹn
+tham chiếu ngăn hội thoại trỏ user không tồn tại. Đồ án để PostgreSQL bắt các
+ràng buộc này, không chỉ tin mã Python.
+
+\subsection{ACID}
+
+Một giao dịch quan hệ lý tưởng có bốn tính chất:
+
+\begin{itemize}
+    \item Atomicity: hoặc tất cả lệnh trong giao dịch thành công, hoặc không
+    lệnh nào có hiệu lực.
+    \item Consistency: ràng buộc schema không bị phá.
+    \item Isolation: giao dịch song song không đọc trạng thái dở.
+    \item Durability: đã commit thì còn sau khi mất điện (trong giới hạn cấu
+    hình WAL của Postgres).
+\end{itemize}
+
+Đồ án dùng giao dịch khi đăng ký kèm tạo tổ chức và khi sinh lịch: không để user
+tồn tại mà tổ chức dở. RAG đọc corpus không cần giao dịch dài; đọc Điều là truy
+vấn ngắn.
+
+\subsection{Chỉ mục B-tree và GIN}
+
+Chỉ mục giảm số hàng phải quét. B-tree phù hợp so sánh bằng và khoảng trên khóa
+(id, user\_id, created\_at). GIN phù hợp \texttt{tsvector} và \texttt{pg\_trgm}:
+một hàng liên kết nhiều token. Đồ án: B-tree trên khóa ngoại và trường lọc; GIN
+trên cột tìm kiếm. Thiếu chỉ mục làm cây văn bản và FTS chậm khi corpus
+\soDieu{} Điều; thừa chỉ mục làm ghi chậm hơn --- chấp nhận vì corpus gần như
+chỉ đọc sau khi nạp.
+
+\subsection{Nhóm kết nối (connection pooling)}
+
+Mở TCP tới Postgres đắt. Pool giữ sẵn vài kết nối, cho mượn khi có request, trả
+lại khi xong. SQLAlchemy async dùng pool. Số kết nối tối đa phải nhỏ hơn
+\texttt{max\_connections} của Postgres, đặc biệt khi chạy pytest song song và
+Compose cùng lúc. Sai cấu hình pool biểu hiện là timeout lúc demo, không phải
+lỗi RAG.
+
+\subsection{Quyền trong CSDL}
+
+User ứng dụng không được \texttt{CREATE EXTENSION}. Extension
+\texttt{unaccent}, \texttt{pg\_trgm} nằm \texttt{init.sql} chạy bằng user quản
+trị lúc khởi tạo volume. Tách quyền này tránh script backend đòi superuser trên
+môi trường thật.
+
+\section{Bảo mật ứng dụng: băm, token, lỗ hổng trình duyệt}
+
+\subsection{Băm một chiều và mã hoá hai chiều}
+
+Mã hoá (encryption) có chìa để giải ra bản rõ --- dùng khi cần đọc lại (ví dụ
+sao lưu). Băm (hash) một chiều: từ mật khẩu ra chuỗi cố định, không có chìa giải
+ngược. Mật khẩu phải băm, không mã hoá. SHA-256 quá nhanh nên bị dò từ điển bằng
+GPU. Argon2 cố ý chậm và tốn bộ nhớ~\cite{argon2}. Đồ án: mật khẩu qua argon2id;
+JWT ký HS256 (đây là mã xác thực thông điệp, không phải chỗ cất mật khẩu).
+
+Muối (salt) làm hai user cùng mật khẩu ra hash khác nhau. Thư viện passlib gắn
+salt vào chuỗi lưu. Không tự viết schema salt.
+
+\subsection{JWT, phiên và nơi cất token}
+
+JWT cho phép máy chủ stateless: không bảng session trên RAM~\cite{rfc7519}.
+Nhược: thu hồi sớm khó hơn cookie phiên phía server (đồ án chưa denylist
+\texttt{jti}). Access ngắn (15 phút) giảm cửa sổ lộ; refresh dài (7 ngày) giữ
+đăng nhập. Hai loại token phân biệt bằng claim \texttt{type} để không lấy
+refresh gọi API nghiệp vụ.
+
+\texttt{localStorage} dễ đọc bằng JavaScript: nếu có XSS, token bị lấy. Cookie
+\texttt{HttpOnly} chịu XSS tốt hơn nhưng phức tạp CSRF. Đồ án chọn
+\texttt{localStorage} cho đồ án ngành, ghi rõ hướng chuyển cookie khi triển khai
+công cộng.
+
+\subsection{XSS}
+
+XSS (Cross-Site Scripting) chèn mã vào trang của nạn nhân. React mặc định escape
+text trong JSX. Nguy cơ còn lại: \texttt{dangerouslySetInnerHTML}, Markdown không
+lọc, URL javascript:. Đồ án không render HTML thô từ câu trả lời mô hình; tin
+nhắn là text. Highlight tìm kiếm tách token rồi bọc phần tử, không ghép HTML
+chuỗi.
+
+\subsection{CSRF}
+
+CSRF (Cross-Site Request Forgery) lừa trình duyệt đã đăng nhập gửi request sang
+site đích. Cookie tự đính; header \texttt{Authorization} do JS gắn thì form giả
+từ origin khác không tự có Bearer. Mô hình token đồ án giảm CSRF so với cookie
+phiên cổ điển. Khi chuyển cookie, phải thêm token CSRF hoặc SameSite.
+
+\subsection{Giới hạn tần suất}
+
+Rate limiting chặn một client gọi quá dày. Với RAG, động cơ không chỉ DoS máy
+chủ mà còn vét hạn mức API trả phí. slowapi đếm theo user (hoặc IP). Giới hạn
+quá chặt làm demo hỏng; quá lỏng thì một vòng lặp client đốt hết hạn mức ngày.
+
+\section{Tệp văn bản, hàng đợi nền và kiến trúc 12 yếu tố}
+
+\subsection{PDF}
+
+PDF mô tả trang in: chữ, font, toạ độ, đôi khi chỉ ảnh quét. Thư viện trích chữ
+đọc lớp text. File scan không có lớp chữ thì trích ra rỗng --- đồ án từ chối lúc
+tải, không đợi soi hợp đồng mới báo. Không OCR trong phạm vi đồ án vì tốn GPU
+và sai trên biểu mẫu.
+
+\subsection{DOCX}
+
+DOCX là gói XML trong ZIP (Office Open XML). Trích chữ qua thư viện đọc
+\texttt{document.xml}. Định dạng lạ (doc nhị phân cũ, bảng phức tạp) có thể mất
+cấu trúc; đồ án nhận DOCX phổ biến, không cam kết mọi máy gõ luật sư.
+
+\subsection{Việc chạy nền}
+
+Soát xét hợp đồng gọi LLM nhiều lần (từng cụm điều khoản), không phù hợp giữ
+một request HTTP đến khi xong nếu người dùng đóng tab. FastAPI
+\texttt{BackgroundTasks} chạy trong cùng tiến trình: đủ đồ án, mất việc nếu
+container chết giữa chừng. Hàng đợi phân tán (Redis/Celery) là hướng nâng cấp,
+chưa cài.
+
+\subsection{Biến môi trường và bí mật}
+
+Mười hai yếu tố (twelve-factor) khuyên cấu hình qua môi trường, không gắn cứng
+trong mã. Đồ án: khóa API, JWT, chuỗi Postgres nằm \texttt{.env}; hành vi RAG
+nằm \texttt{config.yaml}. Compose chỉ đọc \texttt{.env} gốc. Nhầm file làm backend
+trong Docker không thấy khóa, hỏi đáp 503 --- đã gặp khi triển khai.
+
+\section{Kiểm thử phần mềm và quản lý phiên bản}
+
+\subsection{Các cấp kiểm thử}
+
+Kiểm thử đơn vị (unit) nhắm một hàm (parser SSE, công thức hạn chót). Kiểm thử
+tích hợp nhắm nhiều lớp (API + Postgres). Kiểm thử giao diện đầu cuối nhắm trình
+duyệt. Đồ án: pytest tích hợp trên Postgres tạm; Vitest đơn vị parser SSE. Chưa
+có bộ Playwright --- hạn chế ghi ở Chương~5.
+
+\subsection{Giá trị kiểm thử với RAG}
+
+Test không thể khẳng định mọi câu hỏi pháp lý đúng luật. Test khẳng định: đăng
+nhập cấp đúng loại token; user A không đọc hội thoại B; FTS không dấu trả Điều
+còn dấu; thiếu khóa không làm crash startup; schema Pydantic từ chối body sai.
+Đó là hàng rào hồi quy, không thay luật sư.
+
+\subsection{Git}
+
+Git lưu lịch sử thay đổi dạng đồ thị commit. Nhánh, diff, blame phục vụ hoàn
+tác và đối chiếu khi sửa schema. Đồ án dùng Git trong quá trình phát triển. Báo
+cáo không phụ thuộc việc có remote công khai.
+
+\section{Tóm tắt chỗ gắn lý thuyết vào sản phẩm}
+
+Bảng~\ref{tab:ly-thuyet-gan} không lặp lại bảng công nghệ Chương~2 mà chỉ ra
+\emph{khái niệm nào} quyết định \emph{hành vi nào} người dùng thấy.
+
+\begin{table}[htp]
+\centering
+\caption{Ánh xạ khái niệm nền --- hành vi hệ thống.}
+\label{tab:ly-thuyet-gan}
+\begin{tabular}{p{4.2cm}p{9.5cm}}
+\toprule
+\textbf{Khái niệm} & \textbf{Hành vi trong đồ án} \\
+\midrule
+HTTP không trạng thái & Mỗi API tự mang JWT; server không nhớ phiên RAM. \\
+SSE trên HTTP/1.1 & Ô chat hiện từng bước và từng chữ. \\
+JSON + Pydantic & Lỗi 422 có cấu trúc, TypeScript bám tên trường. \\
+CORS khoá origin & Dev hai cổng vẫn gọi được; không mở \texttt{*}. \\
+UTF-8 / unaccent & Gõ không dấu, đọc còn dấu. \\
+ACID + khóa ngoại & Xóa user không để hội thoại mồ côi (cascade đã thiết kế). \\
+GIN / B-tree & Cây luật và ô tìm mở được trên \soDieu{} Điều. \\
+Argon2 / JWT & Đăng nhập; mật khẩu không lưu rõ. \\
+XSS escape JSX & Câu LLM không thành mã chạy trong trình duyệt. \\
+Background task & Tải xong PDF, soát xét chạy tiếp khi rời trang. \\
+\bottomrule
+\end{tabular}
+\end{table}

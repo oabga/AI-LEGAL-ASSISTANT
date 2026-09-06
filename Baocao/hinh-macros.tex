@@ -43,7 +43,7 @@
 \node[uc] (uc07) at (5.2,2.0) {UC-07 Soát hợp đồng};
 \node[uc] (uc09) at (5.2,1.3) {UC-09 Lịch tuân thủ};
 \node[uc] (uc10) at (5.2,0.4) {UC-10 Quản trị corpus};
-\node[uc] (uc12) at (5.2,-0.3) {UC-12 Lab thi đấu};
+\node[uc] (uc12) at (5.2,-0.3) {UC-12 Hàng loạt câu hỏi};
 \end{scope}
 \node[sys, fit=(uc01)(uc12), label=above:{\small Hệ thống trợ lý pháp lý}] {};
 
@@ -99,26 +99,140 @@
 
 \newcommand{\hinhCsdl}{%
 \begin{tikzpicture}[
-  font=\scriptsize,
-  t/.style={draw, align=left, rounded corners=2pt, fill=yellow!12,
-    minimum width=2.8cm, inner sep=3pt}
+  font=\tiny,
+  >=Latex,
+  every node/.append style={font=\tiny},
+  ent/.style={
+    draw=black!75, very thin,
+    rectangle split, rectangle split parts=2,
+    rectangle split part align=left,
+    align=left, inner sep=2.4pt,
+    text width=3.28cm,
+    font=\fontsize{5.6}{6.7}\selectfont\ttfamily
+  },
+  rel/.style={-{Latex}, thick, black!65},
+  reld/.style={-{Latex}, thick, dashed, black!55},
+  card/.style={font=\fontsize{5.4}{6.4}\selectfont, fill=white, inner sep=0.6pt}
 ]
-\node[t] (org) at (0,2.4) {\texttt{organizations}\\+ vat\_period};
-\node[t] (user) at (3.4,2.4) {\texttt{users}\\+ role};
-\node[t] (conv) at (6.8,2.4) {\texttt{conversations}};
-\node[t] (msg) at (6.8,0.8) {\texttt{messages}\\+ seq};
-\node[t] (doc) at (0,0.8) {\texttt{documents}};
-\node[t] (rev) at (3.4,0.8) {\texttt{reviews /}\\\texttt{findings}};
-\node[t] (task) at (0,-0.8) {\texttt{compliance\_}\\\texttt{tasks}};
-\node[t] (law) at (3.4,-0.8) {\texttt{laws}};
-\node[t] (lkr) at (6.8,-0.8) {\texttt{legal\_knowledge}\\\texttt{\_records}};
-\draw[-{Latex}] (org) -- (user);
-\draw[-{Latex}] (user) -- (conv);
-\draw[-{Latex}] (conv) -- (msg);
-\draw[-{Latex}] (org) -- (doc);
-\draw[-{Latex}] (doc) -- (rev);
-\draw[-{Latex}] (org) -- (task);
-\draw[-{Latex}] (law) -- (lkr);
+% Hàng 1 --- tài khoản và hội thoại
+\node[ent, rectangle split part fill={yellow!28,yellow!6}] (org) at (0,0)
+  {\nodepart{one}\textbf{organizations}
+   \nodepart{two}PK id uuid\\
+   name\\
+   tax\_code UK\\
+   employee\_count\\
+   vat\_period\\
+   annual\_revenue\_bn};
+\node[ent, rectangle split part fill={yellow!28,yellow!6}] (user) at (4.05,0)
+  {\nodepart{one}\textbf{users}
+   \nodepart{two}PK id uuid\\
+   email UK\\
+   password\_hash\\
+   full\_name\\
+   role, is\_active\\
+   FK organization\_id};
+\node[ent, rectangle split part fill={blue!22,blue!5}] (conv) at (8.10,0)
+  {\nodepart{one}\textbf{conversations}
+   \nodepart{two}PK id uuid\\
+   FK user\_id\\
+   title\\
+   archived\\
+   message\_count};
+\node[ent, rectangle split part fill={blue!22,blue!5}] (msg) at (12.15,0)
+  {\nodepart{one}\textbf{messages}
+   \nodepart{two}PK id uuid\\
+   seq Identity\\
+   FK conversation\_id\\
+   role, content\\
+   citations JSONB\\
+   trace JSONB};
+
+% Hàng 2 --- hợp đồng và nhật ký
+\node[ent, rectangle split part fill={teal!28,teal!6}] (doc) at (0,-4.15)
+  {\nodepart{one}\textbf{documents}
+   \nodepart{two}PK id uuid\\
+   FK organization\_id\\
+   FK uploaded\_by\\
+   filename, mime\_type\\
+   storage\_path\\
+   status, extracted\_text};
+\node[ent, rectangle split part fill={teal!28,teal!6}] (rev) at (4.05,-4.15)
+  {\nodepart{one}\textbf{contract\_reviews}
+   \nodepart{two}PK id uuid\\
+   FK document\_id\\
+   status\\
+   risk\_score 0--100\\
+   summary\\
+   clause\_count};
+\node[ent, rectangle split part fill={teal!28,teal!6}] (find) at (8.10,-4.15)
+  {\nodepart{one}\textbf{contract\_findings}
+   \nodepart{two}PK id uuid\\
+   FK review\_id\\
+   position\\
+   clause\_text\\
+   risk\_level\\
+   legal\_refs JSONB};
+\node[ent, rectangle split part fill={black!12,black!3}] (audit) at (12.15,-4.15)
+  {\nodepart{one}\textbf{audit\_logs}
+   \nodepart{two}PK id uuid\\
+   FK user\_id SET NULL\\
+   actor\_email\\
+   action, resource\\
+   resource\_id\\
+   detail JSONB};
+
+% Hàng 3 --- lịch tuân thủ và corpus
+\node[ent, rectangle split part fill={orange!30,orange!7}] (rule) at (0,-8.35)
+  {\nodepart{one}\textbf{compliance\_rules}
+   \nodepart{two}PK id serial\\
+   code UK\\
+   frequency, due\_day\\
+   legal\_refs JSONB\\
+   applies\_to JSONB\\
+   is\_active};
+\node[ent, rectangle split part fill={orange!30,orange!7}] (task) at (4.05,-8.35)
+  {\nodepart{one}\textbf{compliance\_tasks}
+   \nodepart{two}PK id uuid\\
+   FK organization\_id\\
+   FK rule\_id\\
+   period\_label\\
+   due\_date, status\\
+   UK (org, rule, kỳ)};
+\node[ent, rectangle split part fill={green!28,green!6}] (laws) at (8.10,-8.35)
+  {\nodepart{one}\textbf{laws}
+   \nodepart{two}PK law\_id\\
+   law\_name, doc\_type\\
+   category\\
+   article\_count\\
+   status};
+\node[ent, rectangle split part fill={green!28,green!6}] (lkr) at (12.15,-8.35)
+  {\nodepart{one}\textbf{legal\_knowledge\_records}
+   \nodepart{two}PK id (từ JSON)\\
+   law\_id, article\\
+   content, extra JSONB\\
+   article\_number *\\
+   search\_vector *};
+
+% Quan hệ 1 -- N
+\draw[rel] (org) -- node[card, above]{1} node[card, below]{N} (user);
+\draw[rel] (user) -- node[card, above]{1} node[card, below]{N} (conv);
+\draw[rel] (conv) -- node[card, above]{1} node[card, below]{N} (msg);
+\draw[rel] (org) -- node[card, left]{1} node[card, right]{N} (doc);
+\draw[rel] (doc) -- node[card, above]{1} node[card, below]{N} (rev);
+\draw[rel] (rev) -- node[card, above]{1} node[card, below]{N} (find);
+\draw[rel] (rule) -- node[card, above]{1} node[card, below]{N} (task);
+\draw[rel] (org.south west) -- ++(-0.45,0) |- node[card, near start, left]{1} node[card, near end, left]{N} (task.west);
+\draw[rel] (user.south east) -- ++(0.35,0) |- node[card, pos=0.15, right]{1} node[card, pos=0.72, right]{N} (audit.north);
+\draw[reld] (user.south) -- node[card, left]{1} node[card, right]{N} (doc.north east);
+\draw[reld] (laws) -- node[card, above]{1} node[card, below]{N} (lkr);
+
+\node[anchor=west, font=\fontsize{5.6}{6.8}\selectfont, align=left] at (-1.75,-11.15) {%
+  Nét liền: khóa ngoại thật (CASCADE hoặc SET NULL).
+  Nét đứt: \texttt{uploaded\_by} và \texttt{laws}$\leftrightarrow$\texttt{legal\_knowledge\_records} (cùng \texttt{law\_id}, không FK).\\
+  * = cột generated (Postgres tự tính).
+  UK = unique.
+  Màu: vàng tài khoản, xanh dương hội thoại, teal hợp đồng, cam lịch, xanh lục corpus, xám nhật ký.%
+};
 \end{tikzpicture}%
 }
 

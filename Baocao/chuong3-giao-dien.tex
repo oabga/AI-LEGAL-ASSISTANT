@@ -1,0 +1,53 @@
+\section{Thiết kế giao diện theo trang}
+
+Giao diện không dùng bộ component thương mại. Mỗi trang dưới đây tương ứng một
+nhóm route React Router. Màu nền tối, chữ đủ tương phản để đọc Điều dài.
+
+\subsection{Đăng ký và đăng nhập}
+
+Hai trang tách URL. Đăng ký có thể thu gọn phần hồ sơ công ty; nếu bỏ trống,
+tài khoản vẫn tạo, lịch chưa sinh. Thông báo lỗi API hiện tiếng Việt (email
+trùng, mật khẩu ngắn). Sau login thành công, \texttt{restore} không chạy xen
+kẻ với điều hướng --- \texttt{RequireAuth} chờ store có user hoặc xác nhận
+không có token.
+
+\subsection{Hỏi đáp}
+
+Cột trái: danh sách hội thoại, tạo mới, đổi tên, xóa. Cột phải: lịch sử tin,
+ô nhập, vết \texttt{AgentTrace}, danh sách citation. Khi stream, nút gửi khóa
+để tránh hai SSE song song trên một hội thoại (hạn mức và thứ tự \texttt{seq}).
+Citation là nút, không phải footnote tĩnh.
+
+\subsection{Tra cứu văn bản}
+
+Bộ lọc lĩnh vực, ô tìm, danh sách số hiệu. Trang chi tiết: mục lục chương, vùng
+đọc Điều, liên kết \texttt{extra}, nút hỏi về Điều. Splat route giữ đúng
+\texttt{38/2019/QH14} trong URL.
+
+\subsection{Hợp đồng}
+
+Danh sách tệp, kéo-thả, tiến độ soát xét, bảng finding. Poll 2,5 giây chỉ khi
+còn review đang chạy, tránh gọi API lúc idle.
+
+\subsection{Lịch tuân thủ}
+
+Nhóm theo tháng dương lịch. Màu trạng thái pending/done/skipped. Dialog ghi chú
+khi đánh dấu. Nút sinh lại có lời nhắc idempotent. Rule không áp dụng không hiện
+task --- không hiện dòng ``không áp dụng'' để lịch gọn.
+
+\subsection{Quản trị}
+
+Chỉ admin. Corpus: số liệu, import, reindex kèm cảnh báo hết hạn mức. User:
+khóa, đổi vai trò. Chạy hàng loạt: tải JSON câu hỏi, xem tiến độ, tải kết quả.
+Menu ẩn với user thường; API vẫn 403 nếu gọi thẳng.
+
+\section{Tách gói frontend và proxy}
+
+\texttt{api.ts} gom Axios. \texttt{sse.ts} gom parser. Hook
+\texttt{useChatStream} không nằm trong store Zustand: luồng đang chạy là state
+cục bộ trang chat. \texttt{AuthStore} chỉ user và token. Danh mục luật không
+đưa vào store --- TanStack Query, staleTime dài.
+
+Cùng một \texttt{VITE\_API\_BASE\_URL} trống cho dev (proxy Vite) và Docker
+(proxy nginx). Chỉ khi tách domain mới điền URL tuyệt đối, và lúc đó phải mở
+CORS đúng origin.

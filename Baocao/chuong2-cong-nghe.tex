@@ -1,0 +1,262 @@
+\subsection{HTTP, JSON và CORS}
+
+\boncau
+{Cách trình duyệt nói chuyện với máy chủ: mỗi lần gọi độc lập, thân REST là
+JSON, khi dev hai cổng khác nhau thì trình duyệt hỏi CORS~\cite{rfc9110}.}
+{Toàn bộ nghiệp vụ đi qua HTTP. Body REST là JSON. Khi Vite (5173) gọi API
+(8023) khác origin, trình duyệt bắt buộc có CORS.}
+{GET đọc, POST tạo, PATCH sửa, DELETE xóa. Mã dùng: 200, 201, 202 (soát xét
+nền), 400, 401, 403, 404 (kể cả xem chéo hội thoại), 422, 429, 503. CORS khóa
+origin cấu hình, không \texttt{*}. Docker cùng origin nên CORS gần như không chạy.}
+{Mọi request API. OPTIONS chỉ khi trình duyệt preflight. HTTPS/TLS không bật
+trong Compose nội bộ --- khi đưa ra Internet phải đặt trước nginx.}
+
+\subsection{Python}
+
+\boncau
+{Ngôn ngữ của toàn bộ tầng máy chủ: FastAPI, tách từ, LangGraph và SQLAlchemy
+chung một codebase.}
+{\texttt{underthesea} (tách từ BM25) ghim Python 3.10; FastAPI, SQLAlchemy,
+LangGraph cùng một ngôn ngữ.}
+{Quản lý gói bằng \texttt{uv}; type hint + Pydantic cho schema; \texttt{async}
+cho I/O tới Postgres, Chroma và Gemini.}
+{Toàn bộ tầng máy chủ. Không dùng cho frontend.}
+
+\subsection{FastAPI}
+
+\boncau
+{Cửa HTTP duy nhất của SPA: nhận REST và đẩy SSE, kiểm body bằng Pydantic, tự
+sinh mô tả OpenAPI~\cite{fastapi}.}
+{Một request hỏi đáp chủ yếu chờ mạng: bất đồng bộ có lợi. SSE có
+\texttt{StreamingResponse}. Schema khớp TypeScript phía trình duyệt.}
+{Router tách theo nghiệp vụ (\texttt{auth}, hội thoại, hỏi đáp, luật, tài liệu,
+lịch, quản trị). Pipeline RAG nằm tầng dịch vụ, không nằm trong router.}
+{Mọi HTTP nghiệp vụ. Đường \texttt{/docs} dùng khi trình bày API, không phải
+luồng người dùng DNNVV.}
+
+\subsection{Pydantic}
+
+\boncau
+{Lớp biên giới API: body sai thì 422, không vào nghiệp vụ; schema khớp
+TypeScript phía trình duyệt.}
+{Lỗi 422 có cấu trúc khi client gửi sai trường; OpenAPI khớp schema thật.}
+{Body đăng ký, đăng nhập, tin nhắn, kết quả soát xét, bộ câu chạy hàng loạt.}
+{Mỗi lần FastAPI nhận hoặc trả JSON có khai báo mô hình.}
+
+\subsection{SQLAlchemy 2.0 và Alembic}
+
+\boncau
+{Cách đọc ghi PostgreSQL bằng lớp Python, kèm nhật ký đổi cột để máy khác lên
+cùng schema.}
+{CRUD hội thoại, tài liệu, lịch không viết SQL lặp. Không sửa schema tay trên
+máy rồi quên ghi.}
+{Bản bất đồng bộ + \texttt{asyncpg}. User ứng dụng không \texttt{CREATE EXTENSION};
+extension nằm \texttt{init.sql}.}
+{Mọi đọc/ghi PostgreSQL nghiệp vụ. Vector không đi ORM --- nằm Chroma.}
+
+\subsection{PostgreSQL}
+
+\boncau
+{Nơi giữ user, hội thoại, Điều chữ, lịch và ràng buộc (mã số thuế duy nhất, task
+không trùng kỳ).}
+{Cần ràng buộc tổ chức--user--hội thoại, FTS tiếng Việt tự dựng, và lịch tuân
+thủ. Chroma không làm việc này.}
+{Bản 17. Cổng host 23432. Corpus chữ và nghiệp vụ cùng một cụm; cột generated
+\texttt{tsvector} sau \texttt{unaccent}.}
+{Luôn chạy khi hệ thống sống. Tra cứu FTS không cần Gemini.}
+
+\subsection{ChromaDB}
+
+\boncau
+{Nơi giữ vector từng Điều và tìm $k$ Điều gần câu hỏi theo cosine, chạy trong
+cùng tiến trình backend.}
+{Nhẹ, chạy kèm tiến trình backend, đủ \soDieu{} Điều; không thêm cụm Pinecone.}
+{Volume \texttt{chroma\_db}. Manifest (mô hình, chiều, số bản ghi) so khớp lúc
+khởi động. Đổi chiều thì xóa và nhúng lại.}
+{Nạp/reindex và nút \texttt{retrieve}. Thiếu chỉ mục: hỏi đáp 503, FTS vẫn dùng.}
+
+\subsection{LangGraph}
+
+\boncau
+{Cách nối bảy bước hỏi đáp thành một đồ thị có nhánh thoát sớm và có sự kiện
+SSE từng nút.}
+{Cần thoát sớm khi câu không phải pháp luật, và đẩy SSE theo từng nút. Không
+dùng agent tự chọn công cụ tự do: thứ tự truy hồi rồi sinh là cố định.}
+{Bảy nút; bộ nhớ ngắn nạp từ PostgreSQL, không dùng \texttt{InMemorySaver}.}
+{Mỗi lượt hỏi đáp. Soát xét hợp đồng tái sử dụng hàm truy hồi, không đi đủ bảy
+nút hội thoại.}
+
+\subsection{Uvicorn}
+
+\boncau
+{Tiến trình chạy FastAPI trong Docker: một worker, cổng 8023, đủ để giữ SSE và
+không đua file Chroma.}
+{SSE cần vòng sự kiện bất đồng bộ; Gunicorn đồng bộ thuần không hợp.}
+{Docker: một tiến trình, không reload, cổng 8023. Một worker để hai process
+không đua file Chroma.}
+{Luôn khi backend sống. Reload chỉ trên máy phát triển ngoài Compose.}
+
+\subsection{Mô hình ngôn ngữ và Gemini}
+
+\boncau
+{Dịch vụ viết câu và nhúng chữ qua API (Gemini), không phải kho luật và không
+được tinh chỉnh trọng số trong đồ án.}
+{Không có GPU để tự host. Lớp tương thích OpenAI cho phép đổi \texttt{base\_url}
+sang vLLM sau này mà không viết lại nút.}
+{\texttt{gemini-2.5-flash}, nhiệt độ 0, tối đa 4096 token. Nhúng tách
+\texttt{gemini-embedding-001}. Flash thay Pro: đủ câu ngắn trên $k=8$ Điều, rẻ
+hơn trên HyDE + filter + generate.}
+{Intent, HyDE, filter, generate, và nhúng. Thiếu khóa: health 200, chat 503.
+Không fine-tune.}
+
+\subsection{Underthesea}
+
+\boncau
+{Công cụ tách từ tiếng Việt cho BM25, để ``lao động'' không bị đếm thành hai
+mảnh.}
+{BM25 cần đơn vị từ. ``Lao động'' tách thành ``lao'' / ``động'' làm nhiễu IDF.}
+{Nạp được thì dùng; không thì fallback regex. Cache theo dấu vân tay tokenizer.}
+{Lúc dựng chỉ mục BM25 (khởi động hoặc cache lệch). Không dùng cho embedding.}
+
+\subsection{React}
+
+\boncau
+{Thư viện vẽ toàn bộ màn hình sau đăng nhập; đổi trang không tải lại cả
+site~\cite{react}.}
+{Đề bài yêu cầu React. Ứng dụng sau đăng nhập, không cần SSR/SEO.}
+{React 19. Tách \texttt{ChatPanel}, \texttt{CitationList}, \texttt{AgentTrace}.
+Không dùng Next.js.}
+{Mọi màn hình sau login. Trang login/register cũng là component React.}
+
+\subsection{TypeScript}
+
+\boncau
+{JavaScript có kiểu: lệch tên trường API (token, citation) bị bắt lúc build.}
+{Lệch \texttt{access\_token} / \texttt{accessToken} bắt lúc biên dịch.}
+{Khai báo user, hội thoại, Điều, finding, sự kiện SSE. Khớp OpenAPI FastAPI.}
+{Toàn bộ frontend.}
+
+\subsection{Vite}
+
+\boncau
+{Công cụ dựng SPA: lúc lập trình có proxy \texttt{/api}, lúc đóng gói ra tệp
+tĩnh cho nginx.}
+{Khởi động nhanh; proxy \texttt{/api} giống nginx production.}
+{\texttt{VITE\_API\_BASE\_URL} trống trong Docker: cùng origin.}
+{Dev trên máy; image frontend chỉ chứa bản đã build.}
+
+\subsection{Tailwind CSS}
+
+\boncau
+{Cách trang trí giao diện bằng class nhỏ trong JSX, không kéo bộ nút thương mại.}
+{Không kéo bộ component thương mại; gói nhỏ, nền tối đủ đọc Điều dài.}
+{Bản 4. Nút, ô nhập, thẻ tự viết.}
+{Mọi trang giao diện.}
+
+\subsection{TanStack Query}
+
+\boncau
+{Bộ nhớ tạm phía trình duyệt cho danh mục luật và trạng thái soát xét, tách
+khỏi kho phiên đăng nhập.}
+{Danh mục luật, cây Điều, poll soát xét --- không nhét vào store phiên.}
+{Poll 2,5 giây khi soát xét. Tắt \texttt{refetchOnWindowFocus}.}
+{Mọi GET danh sách/chi tiết. Không dùng cho luồng SSE (Fetch).}
+
+\subsection{Zustand}
+
+\boncau
+{Kho nhỏ phía trình duyệt: chỉ user, token và hàm khôi phục phiên.}
+{Chỉ cần user + token + \texttt{restore}; Redux thừa boilerplate.}
+{Đọc token \texttt{localStorage} khi tải trang. Không chứa danh sách luật.}
+{Khởi động SPA và mỗi lần login/logout.}
+
+\subsection{React Router}
+
+\boncau
+{Cách đổi URL mà không tải lại trang; số hiệu có dấu \texttt{/} cần bắt phần
+còn lại của đường dẫn.}
+{Số hiệu văn bản chứa \texttt{/} cần splat \texttt{*}.}
+{Route \texttt{/login}, \texttt{/chat/:id}, \texttt{/laws/:lawId/*},
+\texttt{/contracts}, \texttt{/compliance}, \texttt{/admin/*},
+\texttt{/admin/batch-eval}. Admin \texttt{lazy()}. \texttt{RequireAuth} chờ
+restore xong.}
+{Mỗi lần người dùng đổi trang.}
+
+\subsection{Axios}
+
+\boncau
+{Client REST: gắn Bearer, làm mới token một lần khi 401, gỡ JSON khi gửi file.}
+{Cần interceptor chung: Bearer, làm mới token một lần, hàng đợi 401.}
+{Xóa \texttt{Content-Type} khi \texttt{FormData} để trình duyệt đặt multipart.}
+{Mọi REST. Không dùng cho SSE --- hỏi đáp dùng Fetch.}
+
+\subsection{nginx}
+
+\boncau
+{Cổng duy nhất người dùng mở: phát tệp Vite và chuyển \texttt{/api} vào
+backend, tắt đệm cho SSE.}
+{Trình duyệt chỉ mở một cổng; \texttt{/api} vào backend.}
+{Image frontend phục vụ bản Vite. Host 5173.}
+{Môi trường Docker / production. Dev dùng proxy Vite thay nginx.}
+
+\subsection{Docker và Docker Compose}
+
+\boncau
+{Cách dựng cùng một cụm Postgres--API--nginx trên máy khác nhau, không lệch
+phiên bản Python hay CSDL~\cite{docker}.}
+{Cùng Python 3.10, Postgres 17, nginx trên máy khác nhau. Không lệch phiên bản
+khi chấm đồ án.}
+{Ba dịch vụ: \texttt{postgres} (healthcheck \texttt{pg\_isready}),
+\texttt{backend} (đợi healthy, \texttt{/health}), \texttt{frontend}. Compose
+chỉ đọc \texttt{.env} gốc, không đọc \texttt{backend/.env}.}
+{Lúc dựng và vận hành cụm. Máy dev có thể chạy Vite + Postgres ngoài Compose.}
+
+\subsection{JWT}
+
+\boncau
+{Hai loại token ký sẵn (access ngắn, refresh dài) để API biết ai đang gọi mà
+không giữ phiên trên RAM~\cite{rfc7519}.}
+{Không thêm Redis. Access ngắn hạn giảm cửa sổ lộ token.}
+{HS256, \texttt{JWT\_SECRET\_KEY}. Claim \texttt{sub}, \texttt{type}
+(\texttt{access}/\texttt{refresh}), \texttt{iat}, \texttt{exp}, \texttt{jti}.
+Access 15 phút, refresh 7 ngày. Gọi API bằng refresh bị từ chối.}
+{Mọi request sau login. Token ở \texttt{localStorage} --- còn rủi ro XSS; hướng
+phát triển là cookie \texttt{HttpOnly}.}
+
+\subsection{Argon2}
+
+\boncau
+{Cách lưu mật khẩu: băm argon2id, cố ý chậm, không lưu chữ gốc~\cite{argon2}.}
+{SHA-256 quá nhanh, dễ dò GPU. Cần hàm cố ý chậm và tốn bộ nhớ.}
+{Qua passlib. Không lưu plaintext. Hash hỏng không sập login --- verify trả sai.}
+{Đăng ký và mỗi lần đăng nhập. Không dùng cho JWT.}
+
+\subsection{Server-Sent Events}
+
+\boncau
+{Kênh máy chủ đẩy tiến độ và từng chữ xuống trình duyệt trong một kết nối HTTP,
+không mở WebSocket.}
+{Cần tiến độ từng nút và từng token. WebSocket thừa chiều client; polling chat
+giật chữ.}
+{Ba loại: \texttt{status}, \texttt{token}, \texttt{result}. Heartbeat tránh
+proxy cắt. Client dùng Fetch (POST + Bearer) vì \texttt{EventSource} không gắn
+header.}
+{Mỗi lượt hỏi đáp. Soát xét hợp đồng dùng polling 2,5 giây, không SSE.}
+
+\subsection{slowapi}
+
+\boncau
+{Chặn một tài khoản gọi chat hoặc tải file quá dày, để khỏi vét hạn mức mô hình.}
+{Một tài khoản không được vét hạn mức Gemini.}
+{Chat 20 lần/phút, tải tệp 30 lần/giờ, theo user (hoặc IP nếu chưa login).}
+{Các endpoint tốn mô hình hoặc tốn đĩa. Tra cứu FTS không siết cùng mức chat.}
+
+\subsection{Kiến trúc client--server và SPA}
+
+\boncau
+{Tách giao diện và máy chủ: trình duyệt tải một bộ JS, mọi nghiệp vụ đi
+\texttt{/api/v1}.}
+{Tách giao diện và máy chủ; trang sau login không cần HTML sẵn cho SEO.}
+{Tiền tố \texttt{/api/v1}. Ba môi trường: Vite + Postgres local, Compose ba
+container, tương lai tách domain.}
+{Toàn bộ sản phẩm. Không dùng SSR.}

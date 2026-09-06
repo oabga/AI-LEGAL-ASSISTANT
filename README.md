@@ -5,6 +5,9 @@ pháp luật Việt Nam (Luật Doanh nghiệp, thuế, lao động, hợp đồ
 huống cụ thể và nhận tư vấn sơ bộ. **Mọi câu trả lời đều kèm trích dẫn Điều luật**
 từ kho văn bản chính thống để người dùng tự kiểm chứng.
 
+**Sổ tay kỹ thuật** (chạy máy, kiến trúc, lý thuyết, thứ tự đọc code):
+[`HUONG_DAN.md`](HUONG_DAN.md).
+
 - **Frontend**: React 19 + Vite + TypeScript + Tailwind CSS 4 + TanStack Query + React Router + Zustand
 - **Backend**: FastAPI + LangGraph (RAG 7 node) + SQLAlchemy 2.0 async + Alembic
 - **Dữ liệu**: PostgreSQL 17 (nghiệp vụ + full-text search) + ChromaDB (vector) + BM25 (lexical)
@@ -172,28 +175,13 @@ uv run python scripts/smoke_contracts.py
 uv run python scripts/smoke_admin.py
 ```
 
-## Competition mode
+## Chạy hàng loạt câu hỏi (quản trị)
 
-Codebase gốc là bài thi; phần này được giữ lại ở `/api/v1/lab/` (yêu cầu vai trò
-`admin`) để tái tạo số liệu cho chương đánh giá của khóa luận. Định dạng
-`results.json` không đổi.
-
-```text
-POST /api/v1/lab/competition          # trả JSON cuối
-POST /api/v1/lab/competition/stream   # stream tiến độ từng câu
-```
-
-Giao diện tương ứng ở `/lab/competition`: tải bộ test JSON, xem tiến độ, tải
-`results.json`. Chạy ngầm không cần mở UI:
+Trang `/admin/batch-eval` (vai trò `admin`) tải một file JSON là mảng các câu
+hỏi, chạy pipeline lần lượt và tải kết quả. Dùng để kiểm tra truy hồi trên nhiều
+câu cùng lúc. Có thể chạy không cần UI:
 
 ```bash
 cd backend
 uv run python scripts/run_competition.py --file path/to/test.json
 ```
-
-Kết quả ghi vào `backend/outputs/competition_<run_id>_<status>.json`, kèm
-`report.log` append sau mỗi câu.
-
-Lưu ý cho khóa luận: kết quả thi đấu dùng Qwen3-8B (thỏa ràng buộc open-source
-< 14B của cuộc thi), còn sản phẩm ứng dụng dùng Gemini. Hai con số không so sánh
-trực tiếp được.

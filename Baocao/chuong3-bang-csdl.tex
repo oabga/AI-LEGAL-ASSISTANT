@@ -1,0 +1,69 @@
+\subsection{Chi tiết từng bảng và khóa ngoại}
+
+Mục này mô tả bảng PostgreSQL phía sản phẩm (không kể bảng Alembic version).
+Corpus tra cứu dùng \texttt{legal\_knowledge\_records}; catalog có thể có bảng
+\texttt{laws} tuỳ migration. Vector không nêu ở đây.
+
+\subsection{organizations và users}
+
+\texttt{organizations}: tên, mã số thuế unique, số lao động, kỳ GTGT, tuỳ chọn
+doanh thu. Xóa tổ chức cascade tài liệu và task; user bị \texttt{SET NULL} khỏi
+tổ chức để không mất tài khoản.
+
+\texttt{users}: email unique (lower-case khi ghi), \texttt{password\_hash},
+\texttt{role} kiểu text, \texttt{is\_active}. Khóa user không xóa hội thoại ngay
+--- tuỳ chính sách admin. UUID làm khóa chính, không lộ số tăng dần.
+
+\subsection{conversations và messages}
+
+Hội thoại thuộc đúng một user, có tiêu đề, cờ lưu trữ, đếm tin nhắn.
+\texttt{messages} có \texttt{seq} Identity: cùng giao dịch, \texttt{created\_at}
+của Postgres có thể trùng, sắp theo thời gian làm đảo câu hỏi/đáp. JSONB lưu
+citation và vết pipeline cho tin assistant. Xóa hội thoại cascade tin nhắn.
+
+\subsection{legal\_knowledge\_records}
+
+Mỗi hàng một Điều. Khóa \texttt{id} lấy từ corpus, không autoincrement, để id
+ổn định giữa lần nạp. Cột generated: \texttt{article\_number} (số để sắp 9 trước
+10), \texttt{doc\_ref}, \texttt{search\_vector} (tsvector đã unaccent, trọng số
+A/B/C theo tiêu đề / tên luật / nội dung). JSONB \texttt{extra}: viện dẫn chéo.
+Chỉ mục: (\texttt{law\_id}, \texttt{article}), GIN tsvector, GIN trigram tiêu đề
+và tên luật.
+
+\subsection{compliance\_rules và compliance\_tasks}
+
+Rule: mã unique, tần suất, công thức hạn, \texttt{legal\_refs},
+\texttt{applies\_to}, \texttt{is\_active}. Task: tổ chức, rule, nhãn kỳ, ngày
+đến hạn, trạng thái, unique (tổ chức, rule, kỳ). Index theo hạn để lịch tháng
+không quét full.
+
+\subsection{documents, contract\_reviews, contract\_findings}
+
+Document: file trên volume, MIME, kích thước, chữ trích, trạng thái. Review: điểm
+rủi ro 0--100, tóm tắt, số điều khoản. Finding: vị trí, mức, gợi ý, căn cứ. Xóa
+tài liệu cascade review và finding. Đường file không phải URL công khai; tải về
+đi qua API đã xác thực.
+
+\subsection{Nhật ký audit (nếu có trong schema)}
+
+Bảng audit ghi hành động admin (reindex, khóa user) khi module được bật, phục vụ
+truy vết, không phục vụ RAG. Không ghi mật khẩu hay token.
+
+\begin{table}[htp]
+\centering
+\caption{Bảng PostgreSQL chính và khóa ngoại then chốt.}
+\label{tab:bang-pg}
+\begin{tabular}{p{4.4cm}p{9.3cm}}
+\toprule
+\textbf{Bảng} & \textbf{Liên kết / ràng buộc} \\
+\midrule
+\texttt{users} & \texttt{organization\_id} $\rightarrow$ organizations, SET NULL \\
+\texttt{conversations} & \texttt{user\_id} CASCADE \\
+\texttt{messages} & \texttt{conversation\_id} CASCADE; \texttt{seq} Identity \\
+\texttt{legal\_knowledge\_records} & PK id từ corpus; GIN search \\
+\texttt{compliance\_tasks} & unique (org, rule, period) \\
+\texttt{documents} & org CASCADE; uploaded\_by SET NULL \\
+\texttt{contract\_findings} & review CASCADE \\
+\bottomrule
+\end{tabular}
+\end{table}

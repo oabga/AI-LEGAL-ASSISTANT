@@ -1,0 +1,38 @@
+\section{Thảo luận kết quả so với mục tiêu}
+
+Đối chiếu mục tiêu cụ thể Chương~1:
+
+\begin{itemize}
+    \item Corpus \soLuat{} văn bản, cắt Điều, metadata và viện dẫn: đạt ở mức
+    nhập và hiển thị; chưa đạt lịch sử hiệu lực.
+    \item Pipeline bảy bước, SSE: đạt trên cấu hình sản phẩm (rerank tắt).
+    \item Tra cứu cây và không dấu: đạt, có test FTS.
+    \item Soát hợp đồng PDF/DOCX/TXT nền: đạt với file có lớp chữ; không OCR.
+    \item Lịch \soRule{} rule theo hồ sơ: đạt; hạn là công thức trong mã.
+    \item JWT, vai trò, cách ly: đạt, có test 404.
+    \item Docker Compose và \soTest{} test: đạt trên môi trường báo cáo.
+\end{itemize}
+
+Mục tiêu tổng quát ``mọi căn cứ mở được Điều'' đạt với điều kiện corpus đã nạp
+và citation đi qua hậu kiểm. Điều kiện đó không biến câu chữ thành tư vấn pháp
+lý có chữ ký.
+
+\section{Bài học kỹ thuật}
+
+Ba chỗ dễ sai khi dựng hệ thống kiểu này, đã xử lý trong mã:
+
+\begin{enumerate}
+    \item Thứ tự tin nhắn không tin \texttt{created\_at} trong cùng transaction.
+    \item Compose không đọc \texttt{backend/.env}.
+    \item Cùng origin lúc production làm CORS ``biến mất'' --- đừng copypaste
+    \texttt{*} từ máy dev sang máy thật.
+\end{enumerate}
+
+Ba chỗ còn mở: hiệu lực văn bản, OCR, đo F2 nội bộ.
+
+\section{Kết luận chương}
+
+Đồ án cho thấy RAG pháp lý tiếng Việt vận hành được trong ứng dụng web đa người
+dùng, với hàng rào dẫn chiếu và lịch rule-based, trên ngăn xếp sinh viên triển
+khai được. Phần chưa làm được đã liệt kê để hướng dẫn viên và hội đồng khỏi
+hiểu nhầm phạm vi.

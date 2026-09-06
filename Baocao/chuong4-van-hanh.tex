@@ -1,0 +1,44 @@
+\section{Lựa chọn mô hình triển khai Gemini}
+
+\subsection{Vì sao gọi API, không tự host}
+
+Tự host LLM đòi GPU, lượng hóa, giám sát VRAM --- ngoài phạm vi đồ án ngành một
+sinh viên không có máy chủ GPU ổn định. Gemini Flash qua lớp OpenAI-compatible
+cho phép đổi \texttt{base\_url} sang vLLM sau này mà không viết lại node
+LangGraph. Đánh đổi: phụ thuộc mạng, hạn mức, chính sách nhà cung cấp, và không
+nộp điểm thi mô hình mở.
+
+\subsection{Vì sao Flash, không Pro}
+
+Pro chậm và đắt hơn trên cùng số token filter+generate+HyDE. Flash đủ cho câu
+tiếng Việt ngắn trên $k=8$ Điều. Nhiệt độ 0 giảm khác biệt giữa hai lần hỏi
+cùng câu --- tiện demo hội đồng.
+
+\subsection{Tách khóa nhúng và khóa sinh câu}
+
+Hai biến môi trường cho phép sau này dùng nhà nhúng khác (rẻ, ổn định chiều)
+và nhà sinh câu khác. Hiện tại có thể trùng một khóa AI Studio. Reindex chỉ cần
+khóa nhúng; chat cần cả hai.
+
+\section{Nhật ký, quan sát và gỡ lỗi}
+
+\texttt{tool\_calls} trong state ghi tên nút, provider, số kết quả, lỗi. SSE đẩy
+metadata rút gọn (top 5 retrieval) để UI hiện ``đang tìm'', không đẩy nguyên
+nội dung 8 Điều (nặng). Debug chi tiết nằm server log, không trả client --- tránh
+lộ prompt hệ thống.
+
+Khi demo hỏng, thứ tự kiểm: container healthy không, Postgres có hàng luật
+không, Chroma manifest khớp không, \texttt{.env} gốc có khóa không, CORS có
+chặn dev không. Phụ lục A lặp lại thứ tự này cho người chấm.
+
+\section{Sao lưu volume và máy trắng}
+
+Ba volume cần giữ nếu muốn khôi phục dữ liệu demo: Postgres (tài khoản, hội
+thoại, corpus chữ, lịch), Chroma (vector), uploads (file hợp đồng). Xóa volume
+Postgres mà giữ Chroma làm lệch id Điều --- phải reindex. Sao lưu mức đồ án:
+\texttt{docker compose down} không gắn \texttt{-v}; copy thư mục volume nếu cần
+mang máy. Không cấu hình sao lưu tự động.
+
+Máy trắng cài Docker, clone mã, điền \texttt{.env}, \texttt{compose up}, nạp
+luật. Không đòi cài sẵn Python 3.10 hay Node trên host, trừ khi phát triển ngoài
+Compose. WSL2 trên Windows chỉ là host; sản phẩm là Linux container.

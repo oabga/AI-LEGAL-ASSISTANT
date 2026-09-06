@@ -1,0 +1,380 @@
+% KHÔNG \input file này vào main.tex / chuong2.tex.
+% Toàn bộ mục ``X là gì'' kiểu bách khoa dễ trùng Turnitin với Wikipedia,
+% tài liệu hãng và khóa luận CNTT khác. Chương 2 đã giải thích bằng việc đồ án
+% cần làm; không cần thêm lớp định nghĩa này.
+
+\section{Định nghĩa các công nghệ và lý thuyết cốt lõi}
+
+Các mục trước đã gắn kỹ thuật vào bài toán pháp lý. Mục này trả lời đúng dạng
+câu hỏi ``X là gì'': khái niệm, đặc điểm, rồi mới nói đồ án dùng X chỗ nào.
+Cách viết này phục vụ người đọc chưa làm RAG hoặc chưa dựng cụm Docker, đồng
+thời giữ giọng báo cáo (không phải hướng dẫn cài đặt từng lệnh).
+
+\subsection{RAG là gì}
+
+Retrieval-Augmented Generation (RAG) là kiến trúc kết hợp hai khối: (1)~truy hồi
+tài liệu liên quan từ một kho bên ngoài mô hình; (2)~sinh câu trả lời với tài
+liệu đó nằm trong ngữ cảnh~\cite{lewis2020rag}. Khác chatbot close-book, RAG
+không lấy ``trí nhớ'' nén trong trọng số làm nguồn chính. Khi tri thức đổi (luật
+sửa, thông tư mới), người vận hành cập nhật kho, không bắt buộc huấn luyện lại
+mạng.
+
+Ba thành phần tối thiểu: kho đã cắt đoạn; bộ truy hồi (thưa, dày, hoặc lai);
+mô hình sinh có cửa sổ ngữ cảnh đủ chứa đoạn đã chọn. RAG không tự bảo đảm đúng
+luật: nếu truy hồi sai, câu sinh ra có thể trôi mà vẫn sai. Đồ án thêm hậu kiểm
+số Điều so với tập vừa tìm, và lọc LLM trước khi sinh.
+
+Đồ án hiện thực RAG trên đơn vị Điều, hybrid BM25--Chroma, RRF, HyDE, bảy nút
+LangGraph. Đây là RAG miền hẹp (closed corpus), không phải RAG Internet.
+
+\subsection{Mô hình ngôn ngữ lớn (LLM) là gì}
+
+LLM là mạng (thường Transformer decoder) huấn luyện trên khối văn bản rất lớn,
+nhiệm vụ gốc là dự đoán token tiếp theo. Từ đó mô hình viết được câu, tóm tắt,
+dịch, trả lời hỏi. LLM không có cơ chế ``mở Điều 44'' trừ khi đoạn Điều được
+đưa vào prompt hoặc đã xuất hiện dày trong dữ liệu huấn luyện --- trường hợp
+sau không kiểm chứng được và dễ bịa số hiệu.
+
+Đồ án gọi LLM qua API (Gemini Flash), nhiệt độ 0, không fine-tune. LLM đóng vai
+viết câu, phân nhãn intent/PASS-DROP, và viết đoạn HyDE; không đóng vai CSDL
+luật.
+
+\subsection{Cơ sở dữ liệu vector là gì}
+
+CSDL vector lưu embedding và tìm $k$ láng giềng gần theo cosine hoặc L2. Khác
+CSDL quan hệ: không tối ưu JOIN, ràng buộc khóa ngoại, hay giao dịch kế toán.
+Đồ án dùng Chroma cho vector, Postgres cho nghiệp vụ. Một hệ không thay hệ kia.
+
+\subsection{ReactJS là gì}
+
+React (thường gọi ReactJS khi nhấn môi trường JavaScript trình duyệt) là thư
+viện UI do Meta phát triển~\cite{react}. Đơn vị xây dựng là component: hàm nhận
+dữ liệu (props) và state, trả về mô tả giao diện (JSX). JSX trông giống HTML
+trong JavaScript nhưng được biên dịch thành lời gọi
+\texttt{React.createElement}. Khi state đổi, React tính lại cây và cập nhật DOM
+thật theo diff (reconciliation), tránh thao tác DOM thủ công dễ lệch.
+
+React không phải khung MVC đầy đủ: không có router, không có HTTP client, không
+có CSDL. Hệ sinh thái bổ sung (React Router, TanStack Query, Zustand) đi kèm.
+Ứng dụng React điển hình là SPA: một lần tải JS, đổi trang không reload.
+
+Đồ án dùng React 19 cho toàn bộ màn hình sau đăng nhập. Không dùng Next.js vì
+không cần SSR. Component tách theo nghiệp vụ (chat, citation, cây luật) để test
+parser SSE độc lập.
+
+\subsection{JSX, props, state}
+
+Props là dữ liệu cha truyền xuống, coi như đầu vào hàm, không sửa tại chỗ.
+State là dữ liệu component tự giữ, đổi bằng \texttt{setState}/\texttt{useState},
+kéo theo render. Lẫn hai khái niệm làm dữ liệu một chiều bị phá (con sửa props
+của cha). Đồ án: danh sách citation là props từ trang chat; ô nhập là state
+cục bộ; user đăng nhập là state Zustand toàn cục.
+
+\subsection{Docker là gì}
+
+Docker đóng gói ứng dụng cùng thư viện, runtime và cấu hình thành image, chạy
+thành container trên kernel máy chủ~\cite{docker}. Khác máy ảo: không mang cả
+hệ điều hành khách đầy đủ, nên khởi động nhanh và tốn ít RAM hơn. Dockerfile
+mô tả các lớp (cài Python, copy mã, lệnh chạy). Lớp không đổi được cache, build
+lần sau nhanh hơn.
+
+Container mặc định mất dữ liệu khi xóa; volume gắn thư mục bền. Mạng Docker cho
+các container gọi nhau bằng tên dịch vụ (\texttt{postgres}, \texttt{backend}).
+
+Đồ án: một image backend Python 3.10, một image frontend nginx, một image
+Postgres chính thức. Người chấm máy khác chạy cùng phiên bản phụ thuộc, không
+cần cài Node/Python trên host.
+
+\subsection{Docker Compose là gì}
+
+Compose là công cụ mô tả \emph{cụm} nhiều container bằng YAML: dịch vụ, cổng,
+biến môi trường, volume, phụ thuộc, healthcheck. Một lệnh \texttt{up} tạo mạng
+và khởi động đúng thứ tự (Postgres healthy rồi mới backend). Đồ án ba dịch vụ;
+Compose đọc \texttt{.env} ở thư mục gốc dự án.
+
+\subsection{FastAPI là gì}
+
+FastAPI là framework web Python hiện đại, dựa ASGI, tự sinh OpenAPI, kiểm tra
+dữ liệu bằng Pydantic~\cite{fastapi}. Phù hợp API JSON và luồng bất đồng bộ.
+Không nhằm render HTML server-side (khác Django template). Đồ án dùng FastAPI
+làm cửa duy nhất cho SPA: REST + SSE, không phục vụ JSX.
+
+\subsection{PostgreSQL là gì}
+
+PostgreSQL là hệ quản trị CSDL quan hệ nguồn mở: SQL, giao dịch ACID, khóa
+ngoại, chỉ mục, kiểu mở rộng (JSONB, tsvector). Đồ án bản 17. Không dùng như
+``kho file luật thô'': mỗi Điều là một hàng có ràng buộc và FTS. Mã số thuế
+unique, task tuân thủ unique theo kỳ --- việc này CSDL bắt, không chỉ tin Python.
+
+\subsection{LangGraph là gì}
+
+LangGraph mô hình hóa tác nhân thành đồ thị: nút là bước xử lý, cạnh là chuyển
+trạng thái, state đi qua các nút. Hợp pipeline có nhánh (SKIP retrieval) và cần
+nhật ký từng bước. Khác ``một hàm 400 dòng'': mỗi nút test và quan sát được.
+Đồ án bảy nút cố định thứ tự, không phải agent tự chọn công cụ tự do.
+
+\subsection{TypeScript là gì}
+
+TypeScript là JavaScript có hệ thống kiểu tĩnh, biên dịch ra JS chạy trên trình
+duyệt. Kiểu giúp bắt lệch tên trường API lúc build. Đồ án khai báo interface
+cho user, Điều, finding, event SSE. Không chạy TypeScript trên server sản phẩm
+frontend --- nginx chỉ phục vụ JS đã dịch.
+
+\subsection{JWT là gì}
+
+JSON Web Token là chuỗi ba phần (header, payload, chữ ký) dùng mang thông tin
+xác thực giữa hai bên~\cite{rfc7519}. Máy chủ ký payload; lần sau chỉ kiểm chữ
+ký và hạn, không cần bảng session trên RAM. Đồ án HS256, hai loại token
+(access/refresh) phân biệt claim \texttt{type}. JWT không mã hoá payload mặc
+định: không nhét mật khẩu vào token.
+
+\subsection{REST là gì}
+
+Representational State Transfer là phong cách thiết kế API: tài nguyên có URL,
+thao tác bằng HTTP method, không trạng thái server giữa hai request. Đồ án:
+\texttt{/api/v1/laws} là tài nguyên văn bản; GET đọc, POST tạo. REST không cấm
+SSE: hỏi đáp là POST tạo lượt hỏi, đáp trả dạng stream.
+
+\subsection{nginx là gì}
+
+nginx là máy chủ HTTP, thường dùng reverse proxy và phục vụ tệp tĩnh. Đồ án:
+image frontend là nginx đọc bản Vite build, chuyển \texttt{/api} sang container
+backend, tắt buffering cho SSE. Người dùng chỉ mở một cổng 5173 trên host.
+
+\subsection{Vite là gì}
+
+Vite là công cụ dựng frontend: dev server ESM nhanh, production bundle bằng
+Rollup. Đồ án không tự viết webpack. Biến \texttt{VITE\_*} được nhúng lúc build,
+không lúc chạy nginx --- để trống base URL trong Docker.
+
+\subsection{Tailwind CSS là gì}
+
+Tailwind là framework CSS kiểu utility: class nhỏ (\texttt{flex},
+\texttt{px-4}) gắn trong JSX. Khác Bootstrap (component có sẵn). Đồ án tự bố
+cục, bản 4, JIT chỉ phát CSS dùng tới.
+
+\subsection{ChromaDB là gì}
+
+Chroma là kho vector nhúng được, API thêm/tìm embedding kèm metadata. Đồ án
+chạy trong process backend, dữ liệu volume \texttt{chroma\_db}. Không thay
+Postgres. Manifest mô hình/chiều phải khớp lúc khởi động.
+
+\subsection{BM25 là gì}
+
+BM25 là hàm xếp hạng xác suất trong truy hồi thông tin: từ nào hiếm (IDF cao)
+và xuất hiện vừa đủ trong tài liệu thì điểm cao, tài liệu dài bị phạt~\cite{robertson2009bm25}.
+Không cần GPU. Yếu khi từ vựng lệch. Đồ án dùng BM25 song song vector.
+
+\subsection{HyDE là gì}
+
+HyDE (Hypothetical Document Embeddings) nhờ LLM viết một đoạn ``như thể đã trả
+lời'', rồi nhúng đoạn đó để tìm vector~\cite{gao2023hyde}. Đoạn giả có thể sai
+nội dung nhưng gần giọng kho. Đồ án bật HyDE, không hiện đoạn giả cho người dùng
+như đáp án.
+
+\subsection{RRF là gì}
+
+Reciprocal Rank Fusion gộp nhiều bảng xếp hạng bằng tổng nghịch đảo hạng, không
+cần chuẩn hoá điểm~\cite{cormack2009rrf}. Đồ án $k=60$, trọng số dense:BM25
+$=3:1$.
+
+\subsection{SSE là gì}
+
+Server-Sent Events: kết nối HTTP máy chủ chủ động đẩy sự kiện văn bản
+(\texttt{event:}, \texttt{data:}). Một chiều. Đồ án: \texttt{status},
+\texttt{token}, \texttt{result}. Client đọc Fetch vì EventSource không gắn Bearer.
+
+\subsection{Argon2 là gì}
+
+Argon2 là hàm băm mật khẩu thắng Password Hashing Competition, tốn bộ nhớ và
+thời gian có chủ ý để chống dò GPU~\cite{argon2}. Đồ án argon2id qua passlib.
+Không dùng SHA-256 cho mật khẩu.
+
+\subsection{ORM là gì}
+
+Object-Relational Mapping ánh xạ bảng thành lớp. CRUD thành thao tác đối tượng.
+Đồ án SQLAlchemy 2 async. ORM không miễn viết hiểu schema: generated column,
+GIN, unique task vẫn phải thiết kế đúng.
+
+\subsection{Alembic là gì}
+
+Alembic ghi lại thay đổi schema thành revision có mã cha, máy khác chạy
+\texttt{upgrade} ra cùng cột. Đồ án không sửa tay bảng trên container rồi quên
+ghi.
+
+\subsection{Pydantic là gì}
+
+Thư viện khai báo mô hình dữ liệu bằng type hint, kiểm tra lúc chạy, xuất JSON.
+Là lớp biên giới API đồ án: body sai thì 422, không vào nghiệp vụ.
+
+\subsection{OpenAPI là gì}
+
+Chuẩn mô tả API (đường, schema, mã lỗi) để máy và người đọc. FastAPI sinh từ
+hint. Đường \texttt{/docs} dùng khi bảo vệ, không phải giao diện user DNNVV.
+
+\subsection{SPA là gì}
+
+Single Page Application tải một bộ HTML/JS, điều hướng client, gọi API lấy dữ
+liệu. Ưu: UI mượt. Nhược: SEO kém --- chấp nhận vì trang sau login. Đồ án SPA
+React + nginx fallback \texttt{index.html}.
+
+\subsection{CORS là gì}
+
+Cơ chế trình duyệt kiểm soát đọc đáp khác origin. Server gửi
+\texttt{Access-Control-Allow-Origin}. Đồ án danh sách origin, không \texttt{*}.
+Docker cùng origin thì CORS gần như không chạy.
+
+\subsection{Unicode và UTF-8 là gì}
+
+Unicode gán mã điểm cho ký tự mọi ngôn ngữ. UTF-8 mã hoá biến độ dài, tương
+thích ASCII. Toàn bộ Điều luật đồ án UTF-8. Tìm không dấu là bản phụ, không phải
+đổi encoding hiển thị.
+
+\subsection{ACID là gì}
+
+Atomicity, Consistency, Isolation, Durability --- bốn tính chất giao dịch quan
+hệ. Đồ án cần khi đăng ký kèm tạo tổ chức: không để nửa user nửa công ty.
+
+\subsection{Chỉ mục CSDL là gì}
+
+Cấu trúc phụ giúp tìm hàng không quét cả bảng. B-tree cho so khớp khóa; GIN cho
+tsvector và trigram. Đồ án lập cả hai nhóm trên bảng Điều.
+
+\subsection{Connection pooling là gì}
+
+Giữ sẵn kết nối TCP tới Postgres, cho mượn theo request. Mở kết nối mới mỗi API
+sẽ chậm và cạn \texttt{max\_connections}. SQLAlchemy async dùng pool.
+
+\subsection{XSS và CSRF là gì}
+
+XSS chèn JavaScript vào trang nạn nhân, đọc \texttt{localStorage}. CSRF mượn
+cookie phiên gửi request giả. Đồ án: React escape text; Bearer header giảm CSRF
+so với cookie cổ điển; XSS vẫn là lý do ghi nợ chuyển cookie HttpOnly.
+
+\subsection{Rate limiting là gì}
+
+Giới hạn số request theo thời gian. Bảo vệ máy chủ và hạn mức LLM. Đồ án
+slowapi: chat 20/phút, upload 30/giờ.
+
+\subsection{Healthcheck là gì}
+
+Lệnh định kỳ (Docker/Compose) hỏi dịch vụ còn sống không. Đồ án:
+\texttt{pg\_isready} và HTTP \texttt{/health} không gọi Gemini. Backend đợi
+Postgres healthy trước khi phục vụ.
+
+\subsection{Reverse proxy là gì}
+
+Máy chủ đứng trước, nhận HTTP từ client, chuyển tiếp server nội bộ. Che cổng
+backend, gộp origin, có thể nén và TLS. Đồ án: nginx.
+
+\subsection{Background task là gì}
+
+Việc chạy sau khi đã trả HTTP, không giữ trình duyệt chờ. FastAPI
+\texttt{BackgroundTasks} cùng tiến trình --- đủ đồ án, mất việc nếu container
+chết giữa soát xét. Khác hàng đợi Redis/Celery.
+
+\subsection{Prompt engineering là gì}
+
+Soạn lệnh hệ thống và người dùng để mô hình bám nhiệm vụ, không đổi trọng số.
+Đồ án: bốn vai prompt (intent, HyDE, filter, generate), đầu ra hẹp
+(NEXT/SKIP, PASS/DROP). Fine-tune không dùng.
+
+\subsection{Fine-tuning là gì}
+
+Cập nhật trọng số mô hình trên dữ liệu miền. Tốn GPU; luật đổi phải train lại.
+Đồ án thay bằng nhập corpus + prompt.
+
+\subsection{Token và tách từ là gì}
+
+Token là đơn vị mô hình hoặc BM25 đếm. Tiếng Việt từ không trùng khoảng trắng;
+underthesea tách từ cho BM25. LLM dùng subword của nhà cung cấp --- hai lớp
+token khác nhau, đồ án chấp nhận.
+
+\subsection{Hallucination là gì}
+
+Mô hình sinh nội dung không có trong ngữ cảnh hoặc không có thật. Pháp lý: bịa
+số Điều, bịa mức phạt. RAG giảm nhưng không triệt. Hậu kiểm citation là lớp
+xác định bù lớp xác suất.
+
+\subsection{Open-domain QA là gì}
+
+Hỏi đáp không gắn sẵn một đoạn văn: hệ thống phải tự tìm đoạn trong kho lớn rồi
+đọc~\cite{karpukhin2020dpr}. Đồ án là QA miền hẹp (38 văn bản) nhưng cùng kiến
+trúc retrieve-then-read.
+
+\subsection{F2 là gì}
+
+$F_\beta$ với $\beta=2$ nhấn độ phủ hơn độ chính xác. Hướng retrieval pháp lý:
+thà lấy thừa Điều (lọc sau) hơn bỏ sót Điều quyết định. Đồ án dùng F2 như khái
+niệm thiết kế, chưa công bố điểm F2 vì chưa gắn nhãn bộ câu nội bộ đủ lớn.
+
+\subsection{uv là gì}
+
+Công cụ quản lý gói và môi trường ảo Python (tương tự pip+venv, khóa phụ thuộc
+chặt). Đồ án dùng uv trên máy dev và trong Dockerfile backend, thống nhất
+\texttt{pytest}.
+
+\subsection{Node.js và npm là gì}
+
+Node.js chạy JavaScript phía máy phát triển (build, test). npm cài gói
+\texttt{package.json}. Sản phẩm Docker frontend \emph{không} chạy Node: chỉ
+nginx và tệp tĩnh. Nhầm ``React cần Node trên server'' là sai trong kiến trúc
+này.
+
+\subsection{Git là gì}
+
+Hệ thống quản lý phiên bản phân tán: commit, nhánh, diff. Dùng khi phát triển
+đồ án để hoàn tác và đối chiếu schema. Báo cáo không phụ thuộc remote công khai.
+
+\subsection{WSL2 là gì}
+
+Windows Subsystem for Linux 2: máy ảo Linux nhẹ trên Windows, dùng làm host
+Docker. Không phải thành phần sản phẩm. Linux thuần chạy cùng Compose.
+
+\subsection{ASGI là gì}
+
+Giao diện bất đồng bộ giữa máy chủ Python và ứng dụng, hỗ trợ HTTP dài và
+WebSocket/SSE. FastAPI chạy ASGI (Uvicorn). WSGI cổ điển không đủ cho SSE đồ án.
+
+\subsection{Uvicorn là gì}
+
+Máy chủ ASGI chạy ứng dụng FastAPI. Docker backend: Uvicorn không reload, cổng
+8023. Số worker giữ một tiến trình vì Chroma nhúng in-process.
+
+\subsection{asyncpg là gì}
+
+Driver PostgreSQL bất đồng bộ cho Python. SQLAlchemy 2 dùng URL
+\texttt{postgresql+asyncpg://}. Không chặn vòng sự kiện khi chờ SQL.
+
+\subsection{passlib là gì}
+
+Thư viện băm và kiểm mật khẩu, bọc argon2. \texttt{verify} trả False khi hash
+hỏng, không làm 500 trang login.
+
+\subsection{Matryoshka embedding là gì}
+
+Kỹ thuật huấn luyện để tiền tố vector vẫn mang nghĩa, cho phép cắt số chiều.
+Đồ án cắt 1536 từ 3072 chiều Gemini. Không phải mọi mô hình cắt được.
+
+\subsection{Backoff là gì}
+
+Khi API trả 429 hoặc 5xx, chờ dần (exponential) rồi thử lại, có trần số lần.
+Đồ án dùng khi nhúng lô Điều. Không thử vô hạn kẻo treo container.
+
+\subsection{Idempotency là gì}
+
+Gọi lại cùng thao tác không tạo thêm hiệu ứng ngoài lần đầu. Sinh lịch đồ án
+idempotent theo (tổ chức, rule, kỳ). Gửi chat không idempotent: mỗi POST một
+tin mới.
+
+\subsection{multipart/form-data là gì}
+
+Kiểu HTTP tải file: boundary tách nhị phân và trường form. Axios phải để trình
+duyệt tự gắn Content-Type. Đồ án interceptor xóa header JSON khi body là
+\texttt{FormData}.
+
+\subsection{OpenAI-compatible API là gì}
+
+Nhiều thư viện nói chuyện theo đường \texttt{/chat/completions} và
+\texttt{/embeddings} kiểu OpenAI. Gemini cung cấp lớp tương thích; đồ án đổi
+\texttt{base\_url} là gọi được, sau này trỏ vLLM không viết lại node.

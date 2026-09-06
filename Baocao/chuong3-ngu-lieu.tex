@@ -1,0 +1,17 @@
+\section{Quy trình chuẩn hóa ngữ liệu}
+
+\boncau
+{Mỗi phần tử JSON là một Điều: số hiệu, chương, số Điều, tiêu đề, nội dung,
+\texttt{extra}. Manifest liệt kê văn bản được phép nạp.}
+{Cắt theo Điều giữ cách dẫn chiếu của nghề. Cắt chồng theo 512 token phá số
+Điều. Khóa \texttt{id} ổn định để Postgres và Chroma cùng một mã.}
+{Script nạp kiểm trường bắt buộc và số hiệu khớp manifest. Điều dài vẫn một
+vector; Điều ngắn (định nghĩa) vẫn nhúng vì người dùng hay hỏi định nghĩa.}
+{Khi dựng CSDL hoặc khi quản trị nhập file. Script không đánh dấu ``còn hiệu
+lực'' --- đó là bước biên tập người.}
+
+Thứ tự làm việc khi máy trắng: chọn số hiệu trong manifest, dựng
+\texttt{base\_data.json} từ bộ Hugging Face, nạp Postgres, rồi mới nhúng
+vector. Đảo thứ tự (nhúng trước khi có hàng chữ) cho chỉ mục rỗng hoặc lệch id.
+Nạp chữ và nhúng tách nhau: sau bước Postgres, trang tra cứu đã dùng được, chưa
+cần khóa mô hình.

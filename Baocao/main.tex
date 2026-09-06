@@ -135,13 +135,64 @@
 % 7. THÔNG TIN CÁ NHÂN - THAY PHẦN NÀY
 % ============================================================
 \newcommand{\tenSV}{Lê Gia Bảo}
-\newcommand{\maSV}{<MSSV>}
+\newcommand{\maSV}{2351010016}
 \newcommand{\tenDoAn}{XÂY DỰNG HỆ THỐNG TRỢ LÝ PHÁP LÝ AI CHO DOANH NGHIỆP NHỎ VÀ VỪA}
 \newcommand{\tenNganh}{CÔNG NGHỆ THÔNG TIN}
+\newcommand{\loaiBaoCao}{ĐỒ ÁN NGÀNH}
 \newcommand{\namBaoCao}{2026}
 \newcommand{\gvhd}{ThS. Dương Hữu Thành}
+\newcommand{\gvhdInHoa}{ThS. DƯƠNG HỮU THÀNH}
 
-% Số liệu về corpus và bộ kiểm thử. Khai báo một chỗ để mọi chương dùng chung,
+% Khung viền kép + bố cục bìa theo mẫu khóa luận Trường ĐH Mở TP.HCM.
+\newcommand{\khungBiaKep}{%
+  \begin{tikzpicture}[remember picture, overlay]
+    \draw[line width=2.4pt]
+      ([xshift=1.05cm,yshift=-1.05cm]current page.north west)
+      rectangle
+      ([xshift=-1.05cm,yshift=1.05cm]current page.south east);
+    \draw[line width=0.7pt]
+      ([xshift=1.22cm,yshift=-1.22cm]current page.north west)
+      rectangle
+      ([xshift=-1.22cm,yshift=1.22cm]current page.south east);
+  \end{tikzpicture}%
+}
+
+\newcommand{\trangBiaMau}{%
+  \thispagestyle{empty}%
+  \khungBiaKep
+  \vspace*{-0.15cm}
+  \begin{center}
+    \singlespacing
+    {\bfseries BỘ GIÁO DỤC VÀ ĐÀO TẠO\par}
+    \vspace{4pt}
+    {\bfseries TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH\par}
+
+    \vspace{0.7cm}
+    \includegraphics[height=2.55cm]{logo-ouhcmc.png}
+
+    \vspace{1.15cm}
+    {\Large\bfseries \tenDoAn\par}
+
+    \vspace{1.45cm}
+    \begin{tabular}{@{}p{5.8cm}@{\hspace{1.8cm}}r@{}}
+      \textbf{\tenSV} & \textbf{\maSV}
+    \end{tabular}
+
+    \vspace{1.15cm}
+    Giảng viên hướng dẫn: \textbf{\gvhdInHoa}
+
+    \vfill
+    {\large\bfseries \loaiBaoCao\par}
+    \vspace{0.4cm}
+    {\large\bfseries NGÀNH \tenNganh\par}
+
+    \vspace{1.4cm}
+    {\bfseries TP. HỒ CHÍ MINH, \namBaoCao\par}
+    \vspace{0.15cm}
+  \end{center}
+}
+
+% Số liệu về corpus. Khai báo một chỗ để mọi chương dùng chung,
 % cập nhật ở đây khi corpus thay đổi.
 \newcommand{\soLuat}{38}
 \newcommand{\soDieu}{3.844}
@@ -149,89 +200,39 @@
 \newcommand{\soRule}{12}
 \newcommand{\soTest}{77}
 
+% Khung trình bày kỹ thuật/công nghệ: Là gì / Vì sao / Cách dùng / Khi nào.
+\newcommand{\boncau}[4]{%
+\begin{itemize}
+    \item \textbf{Là gì.} #1
+    \item \textbf{Vì sao dùng.} #2
+    \item \textbf{Cách dùng.} #3
+    \item \textbf{Khi nào.} #4
+\end{itemize}
+}
+
 \input{hinh-macros}
 
 \begin{document}
 
 % Không đánh số trang ở hai trang bìa
 \pagenumbering{gobble}
+\newgeometry{left=2.2cm,right=2.2cm,top=1.65cm,bottom=1.65cm}
 
 % ============================================================
-% TRANG BÌA 1
+% TRANG BÌA 1 và BÌA 2 (bố cục mẫu Trường ĐH Mở TP.HCM)
 % ============================================================
 \begin{titlepage}
-\centering
-
-{\bfseries BỘ GIÁO DỤC VÀ ĐÀO TẠO\par}
-\vspace{0.3cm}
-{\bfseries TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH\par}
-
-\vspace{3cm}
-
-{\large\bfseries \tenSV\par}
-
-\vspace{1cm}
-
-{\Large\bfseries \tenDoAn\par}
-
-\vspace{1.5cm}
-
-{\huge\bfseries ĐỒ ÁN NGÀNH\par}
-
-\vspace{0.8cm}
-
-{\large\bfseries NGÀNH \tenNganh\par}
-
-\vfill
-
-{\bfseries TP. HỒ CHÍ MINH, \namBaoCao\par}
-
+\trangBiaMau
 \end{titlepage}
 
 \clearpage
 
-% ============================================================
-% TRANG BÌA 2
-% ============================================================
 \begin{titlepage}
-\centering
-
-{\bfseries BỘ GIÁO DỤC VÀ ĐÀO TẠO\par}
-\vspace{0.3cm}
-{\bfseries TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH\par}
-
-
-\vspace{2.2cm}
-
-{\large\bfseries \tenSV\par}
-
-\vspace{0.5cm}
-
-{\Large\bfseries \tenDoAn\par}
-
-\vspace{0.8cm}
-
-{\large Mã số sinh viên: \maSV\par}
-
-\vspace{1.2cm}
-
-{\huge\bfseries ĐỒ ÁN NGÀNH\par}
-
-\vspace{0.8cm}
-
-{\large\bfseries NGÀNH \tenNganh\par}
-
-\vspace{1.2cm}
-
-{\large Giảng viên hướng dẫn: \gvhd\par}
-
-\vfill
-
-{\bfseries TP. HỒ CHÍ MINH, \namBaoCao\par}
-
+\trangBiaMau
 \end{titlepage}
 
 \clearpage
+\restoregeometry
 
 % Bắt đầu đánh số La Mã cho phần đầu báo cáo
 \pagenumbering{Roman}

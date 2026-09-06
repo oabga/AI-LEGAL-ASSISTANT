@@ -1,8 +1,7 @@
 /**
- * Trang chạy tập test cuộc thi.
+ * Trang quản trị: chạy hàng loạt câu hỏi để kiểm tra pipeline.
  *
- * Giữ lại để chương 4 khóa luận còn chỗ tái tạo số liệu thi đấu: upload bộ test
- * JSON, xem tiến độ qua SSE, tải về ``results.json`` đúng format submit.
+ * Tải JSON (mảng object có câu hỏi), xem tiến độ SSE, tải file kết quả.
  */
 import { useRef, useState } from "react";
 import { Download, FlaskConical, Play, Square, Upload } from "lucide-react";
@@ -101,7 +100,7 @@ export function LabCompetitionPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "results.json";
+    anchor.download = "batch-results.json";
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -113,10 +112,10 @@ export function LabCompetitionPage() {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-4xl space-y-4 px-4 py-6">
         <header>
-          <h1 className="text-xl font-semibold text-ink">Competition mode</h1>
+          <h1 className="text-xl font-semibold text-ink">Chạy hàng loạt câu hỏi</h1>
           <p className="mt-1 text-sm text-muted">
-            Chạy tập test theo format cuộc thi. Bỏ qua bước phân tích ý định và không dùng
-            lịch sử hội thoại để kết quả tái lập được.
+            Kiểm tra pipeline trên một danh sách câu. Bỏ qua phân tích ý định và không
+            dùng lịch sử hội thoại để kết quả tái lập được.
           </p>
         </header>
 
@@ -170,7 +169,7 @@ export function LabCompetitionPage() {
                 {!!records.length && !running && (
                   <Button variant="secondary" size="sm" onClick={download}>
                     <Download className="size-4" aria-hidden />
-                    results.json
+                    Tải kết quả
                   </Button>
                 )}
               </div>

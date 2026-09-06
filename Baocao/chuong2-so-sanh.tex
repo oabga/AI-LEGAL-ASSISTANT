@@ -1,0 +1,56 @@
+\section{So sánh phương án và lý do không chọn}
+
+Các mục trước đã trả lời bốn câu cho cái đồ án \emph{dùng}. Mục này nêu cái đã
+xem rồi bỏ: phương án là gì, vì sao không chọn, và khi nào sẽ xem lại.
+
+\subsection{REST và GraphQL}
+
+GraphQL cho client tự chọn trường, giảm overfetch. Đồ án schema ổn định, trang
+nào cũng cần gần đủ trường Điều/citation; lợi GraphQL nhỏ, thêm endpoint
+\texttt{/graphql} và cache phức tạp hơn. REST + OpenAPI khớp FastAPI có sẵn.
+
+\subsection{SSE, WebSocket và polling}
+
+WebSocket hai chiều, hợp chat typing đối phương. Đồ án chỉ server đẩy tiến độ
+và token: SSE đủ, đi qua nginx đơn giản hơn WS. Polling cho soát xét (2,5 giây)
+vì việc nền không cần stream token; polling chat thì lãng phí và giật chữ.
+
+\subsection{JWT và phiên Redis}
+
+Redis session dễ thu hồi. Đồ án không thêm dịch vụ Redis: JWT stateless, access
+ngắn. Thu hồi sớm (khóa user) kiểm \texttt{is\_active} lúc mỗi request --- đủ
+đồ án, chưa denylist \texttt{jti}.
+
+\subsection{PostgreSQL và MongoDB}
+
+Mongo linh hoạt JSON. Pháp lý cần ràng buộc, FTS, giao dịch đăng ký+tổ chức.
+Postgres JSONB vẫn chứa \texttt{extra} và citation. Không cần hai CSDL.
+
+\subsection{Chroma, FAISS và Pinecone}
+
+FAISS mạnh khi tự host CPU/GPU, thiếu metadata store sẵn. Pinecone SaaS thêm
+tài khoản và mạng. Chroma nhúng process, volume Docker, đủ \soDieu{} vector.
+
+\subsection{Next.js và Vite SPA}
+
+Next.js SSR/SEO. Mọi trang nghiệp vụ sau login: SEO không phải yêu cầu. Vite SPA
+đơn giản, khớp đề bài React. Không dùng Next chỉ để ``thêm cho có''.
+
+\subsection{Redux Toolkit và Zustand}
+
+Redux hợp state lớn, middleware nhiều. Đồ án một store phiên: Zustand ít boilerplate.
+
+\subsection{Celery/Redis và BackgroundTasks}
+
+Hàng đợi thật chịu chết worker, retry, nhiều máy. Soát xét đồ án một container:
+BackgroundTasks. Khi tệp dài và cần chắc chắn, chuyển Celery --- hướng Chương~5.
+
+\subsection{Cookie HttpOnly và localStorage}
+
+Cookie an toàn XSS hơn, thêm CSRF. localStorage nhanh cho SPA Axios. Đồ án chọn
+cái sau, ghi nợ cái trước.
+
+\subsection{Fine-tune và prompt}
+
+Fine-tune tốn GPU, luật đổi phải train lại. Prompt + RAG cập nhật bằng nhập
+JSON. Đồ án không fine-tune.

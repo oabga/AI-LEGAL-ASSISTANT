@@ -1,0 +1,39 @@
+\section{Tiêu chí đánh giá định tính}
+
+Đánh giá sản phẩm khi chạy tay trên Compose theo năm tiêu chí (Bảng~\ref{tab:ket-qua-test}):
+
+\begin{enumerate}
+    \item Dẫn chiếu mở được Điều trong kho, không phải URL ngoại vi bịa.
+    \item Tra cứu không dấu vẫn đọc được đoạn còn dấu.
+    \item Suy giảm: thiếu LLM vẫn đăng nhập, đọc luật, xem lịch.
+    \item Docker một lệnh cho ra đủ ba dịch vụ.
+    \item Lịch khớp hồ sơ (quý/tháng, có/không lao động).
+\end{enumerate}
+
+Không tự gắn sao 1--5. Kết luận đạt/không đạt theo quan sát trên máy làm đồ án.
+
+\subsection{Độ trễ, sẵn sàng và giới hạn đo}
+
+\boncau
+{Quan sát tay: FTS dưới một giây; hỏi đáp vài giây đến hơn mười giây (mạng
+Gemini + HyDE + filter); soát xét vài trang chạy nền, poll 2,5 giây.}
+{Chứng minh UI không đóng sớm và cụm vẫn sống khi thiếu khóa --- không phải
+benchmark công bố.}
+{Cố ý không gắn khóa: \texttt{/health} 200, login được, \texttt{GET /laws} đủ
+\soLuat{} văn bản, FTS và lịch chạy; chỉ chat/soát xét 503 hoặc failed.}
+{Không công bố ``trung bình $x$ giây'' (Wi-Fi, hạn mức miễn phí nhiễu). Không
+công bố P/R/$F_2$: chưa gắn nhãn bộ câu nội bộ.}
+
+\section{Kịch bản demo đề xuất khi bảo vệ}
+
+Thứ tự dưới đây phủ đủ bốn nghiệp vụ và một nhánh lỗi:
+
+\begin{enumerate}
+    \item Đăng ký doanh nghiệp 12 lao động, GTGT quý; mở lịch, chỉ rule khớp.
+    \item Tra cứu ``thue gtgt'' không dấu; mở một Điều; bấm hỏi về Điều đó.
+    \item Đặt câu ``thử việc được bao lâu''; chỉ citation; đối chiếu Điều gốc.
+    \item Tải \texttt{hd.txt}; đợi soát xét; đọc một finding.
+    \item (Nếu có) tắt khóa hoặc xoá index tạm --- hỏi đáp 503, tra cứu còn.
+\end{enumerate}
+
+Kịch bản nhằm chứng minh hệ thống là ứng dụng vận hành được, không phải notebook RAG.

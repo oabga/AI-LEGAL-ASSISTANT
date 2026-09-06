@@ -1,5 +1,7 @@
 # ĐỀ CƯƠNG CHI TIẾT KHÓA LUẬN TỐT NGHIỆP
 
+> Tài liệu phác thảo cũ. **Báo cáo nộp:** `Baocao/main.tex` / `Baocao/main.pdf`.
+
 **Tên đề tài dự kiến:** Nghiên cứu, Xây dựng và Đánh giá Hệ thống Trợ lý AI Tư vấn Pháp luật Chuyên sâu cho Doanh nghiệp Vừa và Nhỏ (SMEs) tại Việt Nam
 **Ngành:** Công nghệ Thông tin / Khoa học Máy tính / Khoa học Dữ liệu
 **Mã số đề tài:** [Cập nhật theo Trường]

@@ -1,0 +1,68 @@
+\section{Luồng xử lý chính theo từng nghiệp vụ}
+
+Các mục dưới đây mô tả tuần tự bước máy chủ, bổ sung cho use case Chương~3.
+Mục đích: người đọc đối chiếu được mã nguồn với hành vi, không chỉ nhìn sơ đồ
+hộp.
+
+\subsection{Đăng ký và đăng nhập}
+
+Đăng ký: kiểm tra email chưa tồn tại; băm mật khẩu argon2; nếu có hồ sơ tổ chức
+thì tạo organization (mã số thuế unique) trong cùng giao dịch; nếu bảng user
+trống và cờ bootstrap bật thì gắn admin. Trả user, không tự đăng nhập bắt buộc
+tuỳ API --- client gọi login ngay sau đó.
+
+Đăng nhập: verify hash; cấp access 15 phút và refresh 7 ngày, claim
+\texttt{type} khác nhau, \texttt{jti} khác nhau. Client lưu localStorage, Axios
+gắn Bearer. Hết hạn access: interceptor gọi refresh một lần, hàng đợi các request
+đang 401. Refresh hết hạn: về trang login.
+
+\subsection{Hỏi đáp có stream}
+
+Client POST \texttt{/legal/chat/stream} kèm conversation id và câu hỏi. Server
+ghi tin nhắn user vào Postgres \emph{trước} khi gọi LangGraph, để mất kết nối
+vẫn còn lịch sử. Sau đó mở SSE: heartbeat, từng \texttt{status}, từng
+\texttt{token}, cuối cùng \texttt{result} (câu đủ, citation, vết nút). Client
+parser Vitest đã khóa: thiếu \texttt{result} thì hết stream vẫn đóng, không quay
+mãi.
+
+Nếu chưa index: 503, không mở SSE giả. Nếu SKIP: vẫn SSE nhưng retrieval rỗng.
+Citation trên UI là danh sách mở được; bấm một dòng đi tới trang luật đúng Điều.
+
+\subsection{Tra cứu cây và tìm kiếm}
+
+GET catalog theo lĩnh vực. GET cây: chương và điều sắp theo thứ tự văn bản, không
+theo id nội bộ. Tìm: bỏ dấu câu hỏi, lần lượt số Điều, ts\_rank, trigram. Kết quả
+trả id Điều và đoạn trích gốc (còn dấu); frontend bôi token. ``Hỏi về Điều này''
+điền sẵn câu có số hiệu vào ô chat --- giảm lệch từ vựng ngay từ UI.
+
+\subsection{Hợp đồng}
+
+POST multipart: kiểm tra đuôi, kích thước $\le 10$~MB, trích chữ. Rỗng thì 400.
+Thành công 201, \texttt{ready}. POST review: 202, BackgroundTasks. Poll GET
+document đến \texttt{done} hoặc \texttt{failed}. Kết quả: mảng finding (đoạn, mức,
+gợi ý, legal refs). Cùng tổ chức xem được theo thiết kế thành viên; user ngoài
+tổ chức 404.
+
+\subsection{Lịch tuân thủ}
+
+GET tasks theo khoảng tháng. PATCH đánh dấu done/skipped. POST generate: duyệt
+rule, áp \texttt{applies\_to}, tạo task thiếu, bỏ qua task đã xong cùng kỳ. Đổi
+hồ sơ (số lao động, kỳ GTGT) rồi generate lại thì rule mới xuất hiện kỳ tới.
+
+\subsection{Quản trị corpus}
+
+Admin xem số văn bản, số Điều, trạng thái Chroma (tên mô hình, chiều, số vector).
+Import JSON. Reindex: lô 64, backoff. User thường gọi các đường này 403.
+
+\section{Bốn vai trò và cách ly dữ liệu}
+
+Hệ thống có bốn vai trò: \texttt{admin}, \texttt{owner}, \texttt{member},
+\texttt{user}. Admin: lab, corpus, khóa tài khoản. Owner: tổ chức, thành viên,
+hợp đồng và lịch của tổ chức. Member: dùng tài nguyên tổ chức được chia.
+User: hội thoại và tra cứu cá nhân, chưa gắn tổ chức.
+
+Cách ly: mọi truy vấn hội thoại lọc \texttt{user\_id}. Tài liệu lọc theo
+organization hoặc chủ sở hữu tùy API. Không tin trường id phía client. Trả 404
+khi lệch chủ --- đã nêu ở lược đồ. JWT chỉ chứng minh danh tính; phân quyền nằm
+dependency FastAPI, không nằm React Router (Router chỉ ẩn menu, không phải hàng
+rào).

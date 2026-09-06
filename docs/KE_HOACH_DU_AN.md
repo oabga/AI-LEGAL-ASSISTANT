@@ -1,10 +1,10 @@
-# Kế Hoạch Thực Hiện End-to-End: Cuộc Thi Vietnamese Legal AI (R2AI Stage 1)
+# [Lịch sử] Kế hoạch kỹ thuật cũ — không thuộc đồ án tốt nghiệp
 
-> **Cuộc thi:** Truy hồi và Hỏi đáp Văn bản Pháp luật Tiếng Việt
-> **Deadline nộp bài:** 30/06/2026 — 23:59 (UTC+7)
-> **Công bố Top 10:** 05/07/2026
-> **DemoDay:** 11/07/2026
-> **Leaderboard:** http://leaderboard.aiguru.com.vn/
+> File này **không** là báo cáo đồ án. Báo cáo nộp: `Baocao/main.pdf`.
+
+# Kế hoạch kỹ thuật (lưu trữ)
+
+> Tài liệu lưu trữ, không dùng khi bảo vệ đồ án tốt nghiệp.
 
 ---
 

@@ -1,51 +1,62 @@
 \chapter{Kết luận và hướng phát triển}
 
-\section{Những gì đồ án thực sự làm được}
+\section{Kết quả đạt được}
 
-Em đã có một trang web chạy được trên Docker, nhiều tài khoản, nhiều công ty.
-Người dùng hỏi tiếng Việt thường, nhận câu có danh sách Điều bấm ra nguyên văn.
-Họ đọc được kho \soLuat{} văn bản theo cây, tìm được cả khi gõ thiếu dấu. Họ tải
-hợp đồng và nhận bảng rủi ro (khi có khóa mô hình). Họ có lịch các mốc thuế --
-bảo hiểm -- lao động -- BCTC sinh từ đúng hồ sơ mình khai.
+Đồ án đã xây dựng ứng dụng web chạy trên Docker Compose, hỗ trợ nhiều tài khoản
+và nhiều tổ chức. Người dùng đặt câu hỏi tiếng Việt thông thường, nhận câu trả
+lời kèm danh sách Điều mở được nguyên văn. Kho \soLuat{} văn bản được duyệt theo
+cây Chương--Điều và tìm được khi thiếu dấu. Chức năng soát xét hợp đồng xuất bảng
+rủi ro khi có khóa mô hình. Lịch tuân thủ sinh các mốc thuế, bảo hiểm, lao động
+và BCTC theo hồ sơ từng doanh nghiệp.
 
-Về kỹ thuật, chỗ em cho là đáng kể không nằm ở việc ``dùng RAG'' --- hướng đó
-người khác làm nhiều. Chỗ đáng kể hơn là các quyết định nhỏ khi cài: cắt theo
-Điều; gộp BM25 với vector; gỡ căn cứ không nằm trong tập truy hồi; tìm không dấu
-mà vẫn hiện có dấu; cột \texttt{seq} vì \texttt{now()} trùng nhau; 404 khi xem
-lén hội thoại; backend không tự sát khi thiếu API key.
+Các quyết định kỹ thuật then chốt gồm: cắt ngữ liệu theo Điều; truy hồi lai BM25
+và vector; hậu kiểm căn cứ so với tập truy hồi; tách pha tìm không dấu và pha
+hiển thị còn dấu; dùng cột \texttt{seq} cho thứ tự tin nhắn; trả 404 khi truy cập
+chéo hội thoại; duy trì đăng nhập và tra cứu khi thiếu khóa API.
 
-Kiểm thử: \soTest{} test, backend chạy trên Postgres thật. Em coi đó là phần bắt
-buộc của đồ án ngành, không phải phụ lục cho có.
+Tầng máy chủ chạy trên PostgreSQL.
 
-\section{Những gì cố tình không làm, và những gì còn yếu}
+Đối chiếu bảy mục tiêu cụ thể ở Chương~1: corpus cắt theo Điều đạt ở mức nhập
+và hiển thị, chưa đạt lịch sử hiệu lực; pipeline bảy bước và SSE đạt trên cấu
+hình sản phẩm (nút rerank tắt); tra cứu cây và không dấu đạt; soát hợp đồng đạt
+với tệp có lớp chữ; lịch \soRule{} rule đạt, công thức nằm trong mã; JWT và
+cách ly đạt; Docker Compose đạt trên môi trường báo cáo. Mục tiêu ``mọi căn cứ
+mở được Điều'' đạt khi kho đã nạp và citation đi qua hậu kiểm. Điều kiện đó
+không biến câu chữ thành tư vấn pháp lý có chữ ký.
 
-Không OCR --- PDF ảnh fail lúc tải. Không hàng đợi Redis. Không chọn tự động bản
-luật còn hiệu lực khi hai số hiệu trùng tên khác năm. Không so F2 Gemini với F2
-Qwen trên cùng bộ câu. Giao diện chưa tối cho điện thoại. Token đang để
-\texttt{localStorage}.
+Ba chỗ dễ sai đã xử lý trong mã: không tin \texttt{created\_at} để sắp tin nhắn
+trong cùng một giao dịch; Compose không đọc \texttt{backend/.env}; cùng origin
+lúc đóng gói làm CORS gần như không chạy --- không sao chép \texttt{*} từ máy
+lập trình sang máy thật.
 
-Hậu kiểm chỉ bắt số Điều, không bắt được chuyện mô hình diễn giải sai Điều đúng.
-HyDE và lọc LLM tốn hạn mức; trên gói miễn phí, nhúng lại \soDieu{} Điều dễ bị
-429 --- vì vậy mới có chia lô và nghỉ dần.
+\section{Hạn chế}
+
+Đồ án không thực hiện OCR: tệp PDF ảnh bị từ chối lúc tải. Không dùng hàng đợi
+phân tán. Không tự chọn bản luật còn hiệu lực khi hai số hiệu trùng tên khác năm.
+Chưa đo P/R/F2 trên bộ câu gắn nhãn nội bộ. Giao diện chưa tối ưu cho điện thoại.
+Token lưu tại \texttt{localStorage}.
+
+Hậu kiểm chỉ đối chiếu số Điều, không phát hiện diễn giải sai trên Điều đúng.
+HyDE và lọc LLM tiêu tốn hạn mức dịch vụ; nhúng lại toàn bộ \soDieu{} Điều trên
+gói miễn phí dễ gặp mã 429, nên việc nhúng được chia lô và nghỉ dần.
 
 \section{Hướng phát triển}
 
 \begin{enumerate}
-    \item OCR trước khi trích chữ, hoặc từ chối rõ ``đây là PDF ảnh''.
-    \item Cột hiệu lực (ngày ban hành, hết hiệu lực) trên từng Điều, lọc khi
-    truy hồi.
-    \item Đo F2 trên bộ vài trăm câu nội bộ, cùng corpus, hai endpoint mô hình.
-    \item Đưa soát xét hợp đồng sang worker riêng khi file dài.
-    \item Viện dẫn chéo thành đồ thị cho câu hỏi đa văn bản.
-    \item Cookie \texttt{HttpOnly} + CSP; đưa token ra khỏi \texttt{localStorage}.
-    \item Bố cục hẹp cho màn điện thoại --- kế toán hay hỏi lúc đang ở cửa hàng.
+    \item Bổ sung OCR trước khi trích chữ, hoặc từ chối rõ ràng đối với PDF ảnh.
+    \item Lưu ngày ban hành và hết hiệu lực trên từng Điều, lọc khi truy hồi.
+    \item Gắn nhãn bộ câu nội bộ và đo P/R/F2 trên cùng corpus.
+    \item Chuyển soát xét hợp đồng sang tiến trình worker riêng khi tệp dài.
+    \item Mô hình hóa viện dẫn chéo thành đồ thị phục vụ câu hỏi đa văn bản.
+    \item Chuyển token sang cookie \texttt{HttpOnly}, bổ sung CSP.
+    \item Tối ưu giao diện cho màn hình hẹp.
 \end{enumerate}
 
 \section{Kết luận}
 
-Đồ án bắt đầu từ chuyện một công ty nhỏ hỏi luật trên mạng và không biết câu nào
-bịa. Em không giải được chuyện đó cho mọi ngành luật. Em giải, ở mức một đồ án
-ngành, cho một kho hẹp và bốn việc lặp lại của DNNVV.
-
-Nếu mỗi lần hỏi, người dùng đều mở được Điều gốc ra đọc trước khi copy câu máy
-vào tờ khai hay vào hợp đồng, thì sản phẩm đã làm đúng việc nó nhận.
+Đồ án giải quyết bài toán hỗ trợ DNNVV tra cứu và hỏi đáp pháp lý trong một kho
+văn bản hẹp. Bốn nghiệp vụ --- hỏi đáp có nguồn, đọc cây văn bản, soát xét hợp
+đồng, nhắc mốc tuân thủ --- chạy trên cùng một ứng dụng web đa người dùng. Hệ
+thống không bao phủ mọi lĩnh vực pháp luật và không thay thế người hành nghề.
+Nếu người dùng mở được Điều gốc trước khi hành động, sản phẩm đã đáp ứng mục
+tiêu đã đặt ra.
